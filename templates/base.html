@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}RDH · Cafe Rudra{% endblock %}</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'css/design-tokens.css' %}">
+  
+  <!-- Allowed via CSP: unpkg.com -->
+  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.13.3/dist/cdn.min.js"></script>
+</head>
+<body class="app-shell" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+  {% comment %}
+  Body-level hx-headers attaches the CSRF token to EVERY HTMX POST on every
+  page that extends this base (admin dashboards, menu/tables/agents CRUD),
+  including fragments swapped into shared containers. Rendering {{ csrf_token }}
+  also guarantees the csrftoken cookie is set. Mirrors templates/agent/dashboard.html.
+  {% endcomment %}
+  <header class="app-header">
+    <div>
+      <h1 class="app-header__title">RDH · Cafe Rudra</h1>
+      <span class="app-header__subtitle">{% block header_subtitle %}Named After the Storm{% endblock %}</span>
+    </div>
+    {% block header_actions %}
+      <!-- Badges or toggles go here -->
+    {% endblock %}
+  </header>
+
+  <main class="app-main">
+    <!-- Use app-container--wide for admin panels -->
+    <div class="app-container {% block container_class %}{% endblock %}" id="main-content">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+  
+  <div id="toast-region"></div>
+</body>
+</html>

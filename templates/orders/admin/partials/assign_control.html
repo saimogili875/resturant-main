@@ -1,0 +1,26 @@
+{% comment %}
+Assign control — the admin picks an available delivery agent for a delivery order.
+POSTs to the assign endpoint via HTMX and swaps the response (the updated order
+row) in place. `available_agents` is pre-filtered by the caller to users with
+role AGENT whose AgentProfile.is_available is True, so every option is dispatchable.
+{% endcomment %}
+<form
+  hx-post="{% url 'orders_admin:assign' order.pk %}"
+  hx-target="#order-card-{{ order.pk }}"
+  hx-swap="outerHTML"
+  class="assign-control">
+  {% csrf_token %}
+  {% if available_agents %}
+  <select name="agent_id" required aria-label="Assign delivery agent">
+    <option value="" disabled selected>Select an available agent&hellip;</option>
+    {% for agent in available_agents %}
+    <option value="{{ agent.pk }}">{{ agent.get_full_name|default:agent.username }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit" class="btn btn-primary">Assign</button>
+  {% else %}
+  <div class="text-sm text-muted">
+    No available agents — <a href="{% url 'accounts_admin:agents' %}" target="_blank">enable one in Agents</a>
+  </div>
+  {% endif %}
+</form>

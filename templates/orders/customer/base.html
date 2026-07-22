@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Delivery Order{% endblock %} — RDH · Cafe Rudra</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'css/design-tokens.css' %}">
+  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.13.3/dist/cdn.min.js"></script>
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <h1 class="app-header__title">RDH · Cafe Rudra</h1>
+      <span class="app-header__subtitle">Fast Doorstep Delivery</span>
+    </div>
+    <div class="table-badge">
+      Delivery
+    </div>
+  </header>
+
+  <main class="container" id="main-content">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

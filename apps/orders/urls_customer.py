@@ -1,0 +1,17 @@
+"""Customer delivery ordering URL routes.
+
+Namespace: orders_customer
+"""
+from django.urls import path
+
+from . import views_customer
+
+app_name = "orders_customer"
+
+urlpatterns = [
+    path("menu/", views_customer.delivery_menu, name="menu"),
+    path("cart/add", views_customer.cart_add, name="cart_add"),
+    path("checkout/", views_customer.delivery_checkout, name="checkout"),
+    path("<int:pk>/track/", views_customer.track_order, name="track"),
+    path("<int:pk>/message/", views_customer.post_order_message, name="message"),
+]

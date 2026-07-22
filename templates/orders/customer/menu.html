@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Delivery Menu{% endblock %}
+
+{% block header_subtitle %}Fast Doorstep Delivery{% endblock %}
+
+{% block header_actions %}
+<div class="badge badge-warning icon-text">
+  {% include "partials/icon.html" with name="truck" %} Delivery
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Search Filter -->
+<div class="mb-4">
+  <div class="form-group">
+    <input 
+      type="search" 
+      name="search"
+      value="{{ search|default:'' }}"
+      hx-get="{% url 'orders_customer:menu' %}"
+      hx-trigger="keyup changed delay:300ms, search"
+      hx-target="#menu-content"
+      hx-include="[name='category']"
+      hx-push-url="false"
+      class="form-input"
+      placeholder="Search delivery dishes...">
+  </div>
+</div>
+
+<!-- Menu Content (Category Pills + Menu Grid) -->
+<div id="menu-content">
+  {% include "orders/customer/partials/menu_results.html" %}
+</div>
+
+<div id="cart-bar-container">
+  {% include "orders/customer/partials/cart_bar.html" %}
+</div>
+{% endblock %}
