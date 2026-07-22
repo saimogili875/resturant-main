@@ -4,7 +4,7 @@ from django.contrib import admin
 from django.urls import include, path
 
 from apps.core.ratelimits import admin_login
-from apps.core.views import healthz, home
+from apps.core.views import contact, healthz, home
 
 env = environ.Env()
 
@@ -22,7 +22,8 @@ urlpatterns = [
     path(f"{_admin_path}agents/", include("apps.accounts.urls_admin")),
     path(f"{_admin_path}tables/", include("apps.tables.urls_admin")),
     path(_admin_path, admin.site.urls),
-    # Customer delivery flow (guest).
+    # Customer delivery authentication & flow.
+    path("order/auth/", include("apps.customer_auth.urls")),
     path("order/", include("apps.orders.urls_customer")),
     # Agent delivery dashboard (login required, role=AGENT).
     path("agent/", include("apps.orders.urls_agent")),
@@ -31,8 +32,17 @@ urlpatterns = [
     # Public landing page — must precede the tables include so "/" resolves here
     # while dine-in "t/<token>/" routes still match below.
     path("", home, name="home"),
+    path("contact/", contact, name="contact"),
     # Dine-in flow (QR scan resolves by opaque token).
     path("", include("apps.tables.urls")),
     # Liveness probe.
     path("healthz", healthz, name="healthz"),
 ]
+
+from django.conf import settings
+from django.conf.urls.static import static
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+

@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     "apps.accounts",
     "apps.analytics",
     "apps.core",
+    "apps.customer_auth",
     "apps.menu",
     "apps.orders",
     "apps.realtime",
@@ -150,7 +151,7 @@ STORAGES = {
 }
 
 # ---------- media (user uploads, e.g. menu item images) ----------
-MEDIA_URL = "media/"
+MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 # ---------- auth redirects ----------
@@ -177,6 +178,15 @@ CONTENT_SECURITY_POLICY = {
         "form-action": ["'self'"],
     }
 }
+
+# ---------- email ----------
+EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.smtp.EmailBackend")
+EMAIL_HOST = env("EMAIL_HOST", default="smtp.gmail.com")
+EMAIL_PORT = env.int("EMAIL_PORT", default=587)
+EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # ---------- default primary key ----------
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

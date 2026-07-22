@@ -137,16 +137,29 @@ def cart_add(request):
 @require_http_methods(["GET", "POST"])
 def delivery_checkout(request):
     """Render checkout form or process delivery order placement (COD)."""
+    from apps.customer_auth.views import get_logged_in_customer
+
     cart_items, cart_total, cart_count = _get_delivery_cart(request.session)
 
     if not cart_items:
         return redirect("orders_customer:menu")
 
+    delivery_customer = get_logged_in_customer(request)
+
     if request.method == "GET":
+        form_data = {}
+        if delivery_customer:
+            form_data = {
+                "contact_name": delivery_customer.name,
+                "contact_phone": delivery_customer.phone,
+                "address": delivery_customer.default_address,
+            }
         context = {
             "cart_items": cart_items,
             "cart_total": cart_total,
             "cart_count": cart_count,
+            "form_data": form_data,
+            "delivery_customer": delivery_customer,
         }
         return render(request, "orders/customer/checkout.html", context)
 
@@ -196,6 +209,7 @@ def delivery_checkout(request):
             "cart_count": cart_count,
             "errors": errors,
             "form_data": form_data,
+            "delivery_customer": delivery_customer,
         }
         return render(request, "orders/customer/checkout.html", context, status=400)
 
@@ -220,6 +234,19 @@ def delivery_checkout(request):
             maps_url=maps_url,
             instructions=instructions,
         )
+
+        # Save customer default address and name for future pre-filling
+        if delivery_customer:
+            updated = False
+            if contact_name and not delivery_customer.name:
+                delivery_customer.name = contact_name
+                updated = True
+            if address and delivery_customer.default_address != address:
+                delivery_customer.default_address = address
+                updated = True
+            if updated:
+                delivery_customer.save()
+
     except ValidationError as exc:
         context = {
             "cart_items": cart_items,
@@ -227,6 +254,7 @@ def delivery_checkout(request):
             "cart_count": cart_count,
             "errors": exc.messages if hasattr(exc, "messages") else [str(exc)],
             "form_data": form_data,
+            "delivery_customer": delivery_customer,
         }
         return render(request, "orders/customer/checkout.html", context, status=400)
 

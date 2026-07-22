@@ -15,8 +15,18 @@
       <h1 class="app-header__title">RDH · Cafe Rudra</h1>
       <span class="app-header__subtitle">Fast Doorstep Delivery</span>
     </div>
-    <div class="table-badge">
-      Delivery
+    <div class="flex items-center gap-2">
+      {% if delivery_customer %}
+        <span class="text-xs text-muted" title="{{ delivery_customer.email }}">
+          {{ delivery_customer.email|truncatechars:18 }}
+        </span>
+        <a href="{% url 'customer_auth:logout' %}" class="btn btn-xs btn-outline">Logout</a>
+      {% else %}
+        <a href="{% url 'customer_auth:login' %}" class="btn btn-xs btn-outline">Sign In</a>
+      {% endif %}
+      <div class="table-badge">
+        Delivery
+      </div>
     </div>
   </header>
 

@@ -2,13 +2,14 @@
 
 Namespace: orders_customer
 """
-from django.urls import path
+from django.urls import include, path
 
 from . import views_customer
 
 app_name = "orders_customer"
 
 urlpatterns = [
+    path("auth/", include(("apps.customer_auth.urls", "customer_auth"), namespace="customer_auth")),
     path("menu/", views_customer.delivery_menu, name="menu"),
     path("cart/add", views_customer.cart_add, name="cart_add"),
     path("checkout/", views_customer.delivery_checkout, name="checkout"),
