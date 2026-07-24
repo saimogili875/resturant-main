@@ -155,3 +155,67 @@ def test_checkout_post_invalid_lat_lng_ignored_and_rejected_if_no_address(custom
     assert "A delivery location is required" in content
     assert Order.objects.filter(contact_name="Junk Coords").count() == 0
 
+
+@pytest.mark.django_db
+def test_order_history_gated_redirects_unauthenticated(client):
+    """Logged-out users hitting /order/my-orders/ directly should redirect to login."""
+    url = reverse("orders_customer:my_orders")
+    response = client.get(url)
+    assert response.status_code == 302
+    assert reverse("customer_auth:login") in response.url
+
+
+@pytest.mark.django_db
+def test_order_history_empty_state(customer_client):
+    """Logged-in customer with zero orders -> empty state displays correctly."""
+    url = reverse("orders_customer:my_orders")
+    response = customer_client.get(url)
+    assert response.status_code == 200
+    content = response.content.decode("utf-8")
+    assert "No orders yet — browse the menu to place your first order!" in content
+
+
+@pytest.mark.django_db
+def test_order_history_filters_all_completed_not_completed(customer_client):
+    """Logged-in customer with orders in different statuses -> All, Completed, and Not Completed filters return correct items."""
+    from apps.orders.models import OrderStatus
+    # Order 1: Completed / Paid
+    order1 = Order.objects.create(
+        order_type="DELV",
+        status=OrderStatus.PAID,
+        contact_name="Test Customer",
+        contact_phone="9876543210",
+        total_amount=Decimal("250.00"),
+    )
+    # Order 2: Not Completed / In Kitchen
+    order2 = Order.objects.create(
+        order_type="DELV",
+        status=OrderStatus.IN_KITCHEN,
+        contact_name="Test Customer",
+        contact_phone="9876543210",
+        total_amount=Decimal("180.00"),
+    )
+
+    url = reverse("orders_customer:my_orders")
+
+    # Filter: All
+    res_all = customer_client.get(f"{url}?status=all")
+    assert res_all.status_code == 200
+    content_all = res_all.content.decode("utf-8")
+    assert f"Order #{order1.pk}" in content_all
+    assert f"Order #{order2.pk}" in content_all
+
+    # Filter: Completed
+    res_completed = customer_client.get(f"{url}?status=completed")
+    assert res_completed.status_code == 200
+    content_completed = res_completed.content.decode("utf-8")
+    assert f"Order #{order1.pk}" in content_completed
+    assert f"Order #{order2.pk}" not in content_completed
+
+    # Filter: Not Completed
+    res_not_completed = customer_client.get(f"{url}?status=not_completed")
+    assert res_not_completed.status_code == 200
+    content_not_completed = res_not_completed.content.decode("utf-8")
+    assert f"Order #{order1.pk}" not in content_not_completed
+    assert f"Order #{order2.pk}" in content_not_completed
+

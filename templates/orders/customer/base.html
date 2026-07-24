@@ -31,6 +31,9 @@
     <div class="flex items-center gap-2">
       {% include "partials/share_modal.html" %}
       {% if delivery_customer %}
+        <a href="{% url 'orders_customer:my_orders' %}" class="btn btn-xs btn-outline" style="border-color: var(--color-brand-primary); color: var(--color-brand-primary); padding: 0.35rem 0.65rem; border-radius: var(--radius-sm); font-weight: 600;">
+          📦 My Orders
+        </a>
         <span class="text-xs text-muted" title="{{ delivery_customer.email }}">
           {{ delivery_customer.email|truncatechars:18 }}
         </span>

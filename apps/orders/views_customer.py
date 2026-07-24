@@ -3,6 +3,7 @@
 Thin views orchestrating services.create_order() and build_maps_url().
 Never computes pricing or mutates status directly.
 """
+import re
 from decimal import Decimal
 
 from django.core import signing
@@ -345,3 +346,41 @@ def post_order_message(request, pk):
     sender = request.user if request.user.is_authenticated else None
     message = services.post_message(order, sender, body)
     return render(request, "orders/customer/partials/message.html", {"message": message})
+
+
+@require_GET
+@customer_login_required
+def order_history(request):
+    """Customer order history page listing all past and active delivery orders."""
+    customer = request.delivery_customer
+    status_filter = request.GET.get("status", "all").lower()
+
+    # Query customer's orders by contact_phone or session order IDs
+    delv_order_ids = request.session.get("delv_orders", [])
+    phone = customer.phone.strip() if customer.phone else ""
+    cleaned_phone = re.sub(r"[\s\-\(\)]", "", phone) if phone else ""
+
+    query = Q()
+    if cleaned_phone:
+        query |= Q(contact_phone__icontains=cleaned_phone[-10:]) if len(cleaned_phone) >= 10 else Q(contact_phone=phone)
+    if delv_order_ids:
+        query |= Q(pk__in=delv_order_ids)
+
+    orders_qs = Order.objects.filter(query).prefetch_related("items__menu_item").order_by("-created_at").distinct()
+
+    completed_statuses = [OrderStatus.PAID, OrderStatus.COLLECTED, OrderStatus.CANCELLED]
+
+    if status_filter == "completed":
+        orders_qs = orders_qs.filter(status__in=completed_statuses)
+    elif status_filter in ("not_completed", "active"):
+        orders_qs = orders_qs.exclude(status__in=completed_statuses)
+
+    context = {
+        "orders": list(orders_qs),
+        "status_filter": status_filter,
+        "delivery_customer": customer,
+        "cart_count": sum(request.session.get("delv_cart", {}).values()),
+        "completed_statuses": [s.value for s in completed_statuses],
+    }
+    return render(request, "orders/customer/order_history.html", context)
+
