@@ -79,7 +79,7 @@ def test_case_1_new_email_existing_customer_login_fails(client):
     res = client.post(login_url, {"action": "login", "email": "notfound@example.com"})
     assert res.status_code == 200
     content = res.content.decode("utf-8")
-    assert "We couldn&#x27;t find an account with this email" in content or "We couldn't find an account with this email" in content
+    assert "No account found with this email" in content
     assert len(mail.outbox) == 0
     assert not Customer.objects.filter(email="notfound@example.com").exists()
 

@@ -49,7 +49,7 @@ def customer_login(request):
                 if not customer:
                     login_form.add_error(
                         "email",
-                        "We couldn't find an account with this email. Are you a new customer?",
+                        "No account found with this email. Would you like to create one?",
                     )
                 else:
                     phone = customer.phone or "0000000000"
@@ -83,7 +83,7 @@ def customer_login(request):
                 if Customer.objects.filter(email=email).exists():
                     signup_form.add_error(
                         "email",
-                        "An account already exists with this email. Please use 'Existing Customer — Login' instead.",
+                        "An account already exists with this email. Please log in with your existing account instead.",
                     )
                 elif Customer.objects.filter(phone=phone).exists():
                     signup_form.add_error(

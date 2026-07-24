@@ -4,12 +4,12 @@
 {% block title %}Customer Authentication — Delivery{% endblock %}
 
 {% block content %}
-<div class="mt-4" style="max-width: 640px; margin-left: auto; margin-right: auto;" x-data="{ mode: '{{ active_mode|default:"choice" }}' }">
+<div class="auth-page-container" style="max-width: 540px; margin: 0 auto; padding-top: 1.5rem;" x-data="{ mode: '{{ active_mode|default:"login" }}' }">
   <div class="text-center mb-6">
     <p class="label-caps mb-2">Doorstep Delivery</p>
     <h2 class="headline-md">Welcome to RDH Cafe Rudra</h2>
     <p class="text-sm text-muted mt-2">
-      Please select an option below to continue to the delivery menu.
+      Please select your account type below to continue to the delivery menu.
     </p>
   </div>
 
@@ -23,34 +23,19 @@
     </div>
   {% endif %}
 
-  <!-- Option Selection Cards (Side-by-Side Columns) -->
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem;" x-show="mode === 'choice'">
-    <button type="button" @click="mode = 'login'" class="card card-body text-left glow-hover" style="cursor: pointer; background: var(--rdh-surface-container); border: 2px solid var(--border-subtle); padding: 1.5rem; transition: all 0.2s ease; width: 100%;">
-      <div class="badge badge-primary icon-text mb-3" style="width: fit-content;">
-        {% include "partials/icon.html" with name="user-check" %} RETURNING
-      </div>
-      <h3 class="text-lg text-bold mb-1" style="color: var(--text-primary);">Existing Customer — Login</h3>
-      <p class="text-xs text-muted mb-4">I already have an account with Cafe Rudra.</p>
-      <span class="text-xs text-bold icon-text" style="color: var(--color-brand-primary);">
-        Login with Email &rarr;
-      </span>
+  <!-- Primary Top Tab Toggle Bar -->
+  <div class="flex gap-2 mb-6" style="display: flex; gap: 0.75rem; margin-bottom: 1.5rem;">
+    <button type="button" @click="mode = 'login'" :class="mode === 'login' ? 'btn-primary' : 'btn-outline'" class="btn btn-md flex-1 glow-hover" style="flex: 1; border-radius: var(--radius-md); padding: 0.75rem 1rem; justify-content: center;">
+      {% include "partials/icon.html" with name="user-check" %} Returning Customer
     </button>
-
-    <button type="button" @click="mode = 'signup'" class="card card-body text-left glow-hover" style="cursor: pointer; background: var(--rdh-surface-container); border: 2px solid var(--border-subtle); padding: 1.5rem; transition: all 0.2s ease; width: 100%;">
-      <div class="badge badge-warning icon-text mb-3" style="width: fit-content;">
-        {% include "partials/icon.html" with name="user-plus" %} NEW
-      </div>
-      <h3 class="text-lg text-bold mb-1" style="color: var(--text-primary);">New Customer — Create Account</h3>
-      <p class="text-xs text-muted mb-4">Create a new delivery account automatically.</p>
-      <span class="text-xs text-bold icon-text" style="color: var(--color-brand-primary);">
-        Create Account &rarr;
-      </span>
+    <button type="button" @click="mode = 'signup'" :class="mode === 'signup' ? 'btn-primary' : 'btn-outline'" class="btn btn-md flex-1 glow-hover" style="flex: 1; border-radius: var(--radius-md); padding: 0.75rem 1rem; justify-content: center;">
+      {% include "partials/icon.html" with name="user-plus" %} New Customer
     </button>
   </div>
 
-  <!-- Form 1: Existing Customer Login (Email only) -->
-  <div class="card card-body glow-hover" style="padding: 2rem; background: var(--rdh-surface-container); max-width: 480px; margin: 0 auto;" x-show="mode === 'login'" x-cloak>
-    <h3 class="text-lg text-bold mb-1">Existing Customer — Login</h3>
+  <!-- Form 1: Returning Customer Login (Email only) -->
+  <div class="card card-body glow-hover" style="padding: 2rem; background: var(--rdh-surface-container); border-radius: var(--radius-lg);" x-show="mode === 'login'" x-cloak>
+    <h3 class="text-lg text-bold mb-1">Returning Customer — Login</h3>
     <p class="text-xs text-muted mb-4">Enter your registered email address to receive a 6-digit verification code.</p>
 
     <form method="post" action="{% url 'customer_auth:login' %}">
@@ -61,11 +46,11 @@
         <label for="{{ login_form.email.id_for_label }}" class="form-label">Email Address *</label>
         {{ login_form.email }}
         {% if login_form.email.errors %}
-          <div class="text-xs mt-2 p-2" style="color: var(--rdh-error); background: var(--color-danger-light); border-radius: var(--radius-sm);">
+          <div class="text-xs mt-2 p-2.5" style="color: var(--rdh-error); background: var(--color-danger-light); border-radius: var(--radius-sm);">
             {{ login_form.email.errors.0 }}
             <div class="mt-2">
               <button type="button" @click="mode = 'signup'" class="text-xs text-bold" style="color: var(--color-brand-primary); text-decoration: underline; background: none; border: none; padding: 0; cursor: pointer;">
-                Click here to Create an Account instead &rarr;
+                Create an account &rarr;
               </button>
             </div>
           </div>
@@ -78,18 +63,14 @@
     </form>
 
     <div class="text-center mt-4 pt-3" style="border-top: 1px solid var(--border-subtle);">
-      <button type="button" @click="mode = 'signup'" class="text-xs text-bold" style="color: var(--color-brand-primary); background: none; border: none; padding: 0; cursor: pointer;">
-        New here? Create an account instead &rarr;
-      </button>
-      <br>
-      <button type="button" @click="mode = 'choice'" class="text-xs text-muted mt-2" style="background: none; border: none; padding: 0; cursor: pointer; text-decoration: underline;">
-        &larr; Change option
+      <button type="button" @click="mode = 'signup'" class="text-xs text-muted" style="background: none; border: none; padding: 0; cursor: pointer;">
+        New customer? <strong style="color: var(--color-brand-primary);">Create an account &rarr;</strong>
       </button>
     </div>
   </div>
 
   <!-- Form 2: New Customer Signup (Phone + Email) -->
-  <div class="card card-body glow-hover" style="padding: 2rem; background: var(--rdh-surface-container); max-width: 480px; margin: 0 auto;" x-show="mode === 'signup'" x-cloak>
+  <div class="card card-body glow-hover" style="padding: 2rem; background: var(--rdh-surface-container); border-radius: var(--radius-lg);" x-show="mode === 'signup'" x-cloak>
     <h3 class="text-lg text-bold mb-1">New Customer — Create Account</h3>
     <p class="text-xs text-muted mb-4">Enter your phone number and email address to set up your delivery account.</p>
 
@@ -109,11 +90,11 @@
         <label for="{{ signup_form.email.id_for_label }}" class="form-label">Email Address *</label>
         {{ signup_form.email }}
         {% if signup_form.email.errors %}
-          <div class="text-xs mt-2 p-2" style="color: var(--rdh-error); background: var(--color-danger-light); border-radius: var(--radius-sm);">
+          <div class="text-xs mt-2 p-2.5" style="color: var(--rdh-error); background: var(--color-danger-light); border-radius: var(--radius-sm);">
             {{ signup_form.email.errors.0 }}
             <div class="mt-2">
               <button type="button" @click="mode = 'login'" class="text-xs text-bold" style="color: var(--color-brand-primary); text-decoration: underline; background: none; border: none; padding: 0; cursor: pointer;">
-                Click here to Login with Existing Account &rarr;
+                Log in with existing account &rarr;
               </button>
             </div>
           </div>
@@ -126,12 +107,8 @@
     </form>
 
     <div class="text-center mt-4 pt-3" style="border-top: 1px solid var(--border-subtle);">
-      <button type="button" @click="mode = 'login'" class="text-xs text-bold" style="color: var(--color-brand-primary); background: none; border: none; padding: 0; cursor: pointer;">
-        Already have an account? Login instead &rarr;
-      </button>
-      <br>
-      <button type="button" @click="mode = 'choice'" class="text-xs text-muted mt-2" style="background: none; border: none; padding: 0; cursor: pointer; text-decoration: underline;">
-        &larr; Change option
+      <button type="button" @click="mode = 'login'" class="text-xs text-muted" style="background: none; border: none; padding: 0; cursor: pointer;">
+        Already have an account? <strong style="color: var(--color-brand-primary);">Log in &rarr;</strong>
       </button>
     </div>
   </div>
