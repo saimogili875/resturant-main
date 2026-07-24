@@ -65,12 +65,21 @@ def test_guest_routes_return_200(client, table, menu_item):
     """Public routes must be reachable without authentication."""
     for url in [
         reverse("healthz"),
-        reverse("orders_customer:menu"),
         reverse("tables:menu", args=[table.qr_token]),
         reverse("accounts:login"),
+        reverse("customer_auth:login"),
     ]:
         response = client.get(url)
         assert response.status_code == 200, f"{url} -> {response.status_code}"
+
+
+def test_customer_menu_requires_customer_auth(client, db):
+    """The delivery menu requires customer auth (redirects unauthenticated to login)."""
+    menu_url = reverse("orders_customer:menu")
+    res = client.get(menu_url)
+    assert res.status_code == 302
+    assert res.url == reverse("customer_auth:login")
+
 
 
 # ---------------------------------------------------------------------------

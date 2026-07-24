@@ -171,30 +171,45 @@ def test_checkout_prefill_and_address_update(client):
 
 
 @pytest.mark.django_db
-def test_guest_checkout_fallback(client):
+def test_unauthenticated_delivery_flow_redirects_to_login(client):
     from decimal import Decimal
     from apps.menu.models import Category, MenuItem
 
     cat = Category.objects.create(name="Food", is_active=True)
     item = MenuItem.objects.create(category=cat, name="Burger", price=Decimal("250"), is_available=True)
 
+    # Unauthenticated GET menu redirects to login
+    menu_url = reverse("orders_customer:menu")
+    res = client.get(menu_url)
+    assert res.status_code == 302
+    assert res.url == reverse("customer_auth:login")
+
     # Add item to cart without logging in
     session = client.session
     session["delv_cart"] = {str(item.pk): 1}
     session.save()
 
+    # Unauthenticated GET checkout redirects to login
     checkout_url = reverse("orders_customer:checkout")
     res = client.get(checkout_url)
-    assert res.status_code == 200
-    assert res.context.get("delivery_customer") is None
+    assert res.status_code == 302
+    assert res.url == reverse("customer_auth:login")
 
-    post_data = {
-        "contact_name": "Guest Customer",
-        "contact_phone": "9998887770",
-        "address": "789 Guest Way",
-        "instructions": "",
-    }
-    res = client.post(checkout_url, post_data)
-    assert res.status_code == 200
-    assert "thank_you" in res.templates[0].name
+
+@pytest.mark.django_db
+def test_session_expiry_is_7_days(client):
+    login_url = reverse("customer_auth:login")
+    client.post(login_url, {"phone": "9876543210", "email": "expiry@example.com"})
+
+    mail_body = mail.outbox[0].body
+    import re
+    otp_code = re.search(r"(\d{6})", mail_body).group(1)
+
+    verify_url = reverse("customer_auth:verify_otp")
+    client.post(verify_url, {"otp": otp_code})
+
+    # Session expiry should be 7 days (604,800 seconds)
+    expiry = client.session.get_expiry_age()
+    assert expiry == 7 * 24 * 3600
+
 

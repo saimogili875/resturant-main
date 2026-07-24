@@ -13,6 +13,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from apps.core.ratelimits import checkout, messaging
+from apps.customer_auth.decorators import customer_login_required
 from apps.menu.models import Category as MenuCategory
 from apps.menu.models import MenuItem
 from apps.menu.services import get_cached_menu
@@ -58,6 +59,7 @@ def _get_delivery_cart(session_dict: dict) -> tuple[list[dict], Decimal, int]:
 
 
 @require_GET
+@customer_login_required
 def delivery_menu(request):
     """Render the public delivery menu with server-side cart."""
     all_categories = get_cached_menu()
@@ -88,6 +90,7 @@ def delivery_menu(request):
         "cart_items": cart_items,
         "cart_total": cart_total,
         "cart_count": cart_count,
+        "delivery_customer": getattr(request, "delivery_customer", None),
     }
     if request.headers.get("HX-Request"):
         return render(request, "orders/customer/partials/menu_results.html", context)
@@ -95,6 +98,7 @@ def delivery_menu(request):
 
 
 @require_POST
+@customer_login_required
 def cart_add(request):
     """HTMX endpoint to add a menu item to the delivery session cart."""
     menu_item_id = request.POST.get("menu_item_id")
@@ -135,6 +139,7 @@ def cart_add(request):
 
 @checkout
 @require_http_methods(["GET", "POST"])
+@customer_login_required
 def delivery_checkout(request):
     """Render checkout form or process delivery order placement (COD)."""
     from apps.customer_auth.views import get_logged_in_customer
@@ -301,8 +306,9 @@ def _may_access_order(request, order: Order) -> bool:
 
 
 @require_GET
+@customer_login_required
 def track_order(request, pk):
-    """Guest-facing live tracking page for a single delivery order."""
+    """Customer live tracking page for a single delivery order."""
     order = get_object_or_404(
         Order.objects.select_related("customer", "table", "agent", "session"),
         pk=pk,
@@ -315,12 +321,14 @@ def track_order(request, pk):
         "messages": order.messages.select_related("sender").all(),
         # Code -> human label map for the Alpine status ticker (safe JSON).
         "status_labels": dict(OrderStatus.choices),
+        "delivery_customer": getattr(request, "delivery_customer", None),
     }
     return render(request, "orders/customer/track.html", context)
 
 
 @messaging
 @require_POST
+@customer_login_required
 def post_order_message(request, pk):
     """Post a short chat message on an order; return the rendered bubble."""
     order = get_object_or_404(

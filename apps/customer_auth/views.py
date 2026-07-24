@@ -111,9 +111,9 @@ def verify_otp(request):
                 if not created:
                     customer.save()  # Triggers auto_now update on last_login_at
 
-                # Set 30-day long-lived session
+                # Set 7-day long-lived session
                 request.session["customer_id"] = customer.pk
-                request.session.set_expiry(30 * 24 * 3600)  # 30 days
+                request.session.set_expiry(7 * 24 * 3600)  # 7 days
 
                 # Clean transient pending session keys
                 request.session.pop("pending_otp_phone", None)
@@ -180,10 +180,10 @@ def resend_otp(request):
 
 @require_http_methods(["GET", "POST"])
 def customer_logout(request):
-    """Customer logout — clears customer session and returns to delivery menu."""
+    """Customer logout — clears customer session and redirects to login."""
     if "customer_id" in request.session:
         del request.session["customer_id"]
         request.session.set_expiry(0)
         request.session.modified = True
         messages.success(request, "You have been logged out.")
-    return redirect("orders_customer:menu")
+    return redirect("customer_auth:login")
