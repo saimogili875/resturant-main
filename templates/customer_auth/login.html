@@ -1,48 +1,15 @@
 {% extends "orders/customer/base.html" %}
 {% load static %}
 
-{% block title %}Customer Authentication — Delivery{% endblock %}
+{% block title %}Existing Customer Login — Delivery{% endblock %}
 
 {% block content %}
-<style>
-  [x-cloak] { display: none !important; }
-  .flip-card-wrapper {
-    perspective: 1000px;
-    width: 100%;
-    max-width: 500px;
-    margin: 0 auto;
-  }
-  .flip-card-inner {
-    position: relative;
-    width: 100%;
-    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-    transform-style: preserve-3d;
-  }
-  .flip-card-inner.is-flipped {
-    transform: rotateY(180deg);
-  }
-  .flip-card-face {
-    width: 100%;
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-    border-radius: var(--radius-lg);
-    background: var(--rdh-surface-container);
-    box-shadow: var(--shadow-md);
-  }
-  .flip-card-front {
-    transform: rotateY(0deg);
-  }
-  .flip-card-back {
-    transform: rotateY(180deg);
-  }
-</style>
-
-<div class="auth-page-container" style="max-width: 540px; margin: 0 auto; padding-top: 1.5rem;" x-data="{ mode: '{{ active_mode|default:"login" }}' }">
+<div class="auth-page-container" style="max-width: 500px; margin: 0 auto; padding-top: 1.5rem;">
   <div class="text-center mb-6">
     <p class="label-caps mb-2">Doorstep Delivery</p>
     <h2 class="headline-md">Welcome to RDH Cafe Rudra</h2>
     <p class="text-sm text-muted mt-2">
-      Please select your account type below to continue to the delivery menu.
+      Log in with your registered email address to continue to the menu.
     </p>
   </div>
 
@@ -56,100 +23,49 @@
     </div>
   {% endif %}
 
-  <!-- Primary Top Tab Toggle Bar -->
-  <div class="flex gap-2 mb-6" style="display: flex; gap: 0.75rem; margin-bottom: 1.5rem; max-width: 500px; margin-left: auto; margin-right: auto;">
-    <button type="button" @click="mode = 'login'" :class="mode === 'login' ? 'btn-primary' : 'btn-outline'" class="btn btn-md flex-1 glow-hover" style="flex: 1; border-radius: var(--radius-md); padding: 0.75rem 1rem; justify-content: center;">
+  <!-- Primary Top Navigation Tabs -->
+  <div class="flex gap-2 mb-6" style="display: flex; gap: 0.75rem; margin-bottom: 1.5rem;">
+    <a href="{% url 'customer_auth:login' %}" class="btn btn-md btn-primary flex-1 glow-hover text-center" style="flex: 1; border-radius: var(--radius-md); padding: 0.75rem 1rem; justify-content: center;">
       {% include "partials/icon.html" with name="user-check" %} Returning Customer
-    </button>
-    <button type="button" @click="mode = 'signup'" :class="mode === 'signup' ? 'btn-primary' : 'btn-outline'" class="btn btn-md flex-1 glow-hover" style="flex: 1; border-radius: var(--radius-md); padding: 0.75rem 1rem; justify-content: center;">
+    </a>
+    <a href="{% url 'customer_auth:signup' %}" class="btn btn-md btn-outline flex-1 glow-hover text-center" style="flex: 1; border-radius: var(--radius-md); padding: 0.75rem 1rem; justify-content: center;">
       {% include "partials/icon.html" with name="user-plus" %} New Customer
-    </button>
+    </a>
   </div>
 
-  <!-- Single 3D Flip Card Container -->
-  <div class="flip-card-wrapper">
-    <div class="flip-card-inner" :class="{ 'is-flipped': mode === 'signup' }">
+  <!-- Dedicated Login Card -->
+  <div class="card card-body glow-hover" style="padding: 2rem; background: var(--rdh-surface-container); border-radius: var(--radius-lg);">
+    <h3 class="text-lg text-bold mb-1">Returning Customer — Login</h3>
+    <p class="text-xs text-muted mb-4">Enter your registered email address to receive a 6-digit verification code.</p>
 
-      <!-- Front Face: Returning Customer Login (Email only) -->
-      <div class="flip-card-face flip-card-front card card-body glow-hover" style="padding: 2rem;" :style="mode === 'login' ? 'position: relative;' : 'position: absolute; top:0; left:0; pointer-events: none;'">
-        <h3 class="text-lg text-bold mb-1">Returning Customer — Login</h3>
-        <p class="text-xs text-muted mb-4">Enter your registered email address to receive a 6-digit verification code.</p>
+    <form method="post" action="{% url 'customer_auth:login' %}">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="login">
 
-        <form method="post" action="{% url 'customer_auth:login' %}">
-          {% csrf_token %}
-          <input type="hidden" name="action" value="login">
-
-          <div class="form-group mb-5">
-            <label for="login_email" class="form-label">Email Address *</label>
-            {{ login_form.email }}
-            {% if login_form.email.errors %}
-              <div class="text-xs mt-2 p-2.5" style="color: var(--rdh-error); background: var(--color-danger-light); border-radius: var(--radius-sm);">
-                {{ login_form.email.errors.0 }}
-                <div class="mt-2">
-                  <button type="button" @click="mode = 'signup'" class="text-xs text-bold" style="color: var(--color-brand-primary); text-decoration: underline; background: none; border: none; padding: 0; cursor: pointer;">
-                    Create an account &rarr;
-                  </button>
-                </div>
-              </div>
-            {% endif %}
+      <div class="form-group mb-5">
+        <label for="login_email" class="form-label">Email Address *</label>
+        {{ login_form.email }}
+        {% if login_form.email.errors %}
+          <div class="text-xs mt-2 p-2.5" style="color: var(--rdh-error); background: var(--color-danger-light); border-radius: var(--radius-sm);">
+            {{ login_form.email.errors.0 }}
+            <div class="mt-2">
+              <a href="{% url 'customer_auth:signup' %}" class="text-xs text-bold" style="color: var(--color-brand-primary); text-decoration: underline;">
+                Create an account &rarr;
+              </a>
+            </div>
           </div>
-
-          <button type="submit" class="btn btn-primary btn-block btn-lg glow-hover">
-            Send Verification Code
-          </button>
-        </form>
-
-        <div class="text-center mt-4 pt-3" style="border-top: 1px solid var(--border-subtle);">
-          <button type="button" @click="mode = 'signup'" class="text-xs text-muted" style="background: none; border: none; padding: 0; cursor: pointer;">
-            New customer? <strong style="color: var(--color-brand-primary);">Create an account &rarr;</strong>
-          </button>
-        </div>
+        {% endif %}
       </div>
 
-      <!-- Back Face: New Customer Signup (Phone + Email) -->
-      <div class="flip-card-face flip-card-back card card-body glow-hover" style="padding: 2rem;" :style="mode === 'signup' ? 'position: relative;' : 'position: absolute; top:0; left:0; pointer-events: none;'">
-        <h3 class="text-lg text-bold mb-1">New Customer — Create Account</h3>
-        <p class="text-xs text-muted mb-4">Enter your phone number and email address to set up your delivery account.</p>
+      <button type="submit" class="btn btn-primary btn-block btn-lg glow-hover">
+        Send Verification Code
+      </button>
+    </form>
 
-        <form method="post" action="{% url 'customer_auth:login' %}">
-          {% csrf_token %}
-          <input type="hidden" name="action" value="signup">
-
-          <div class="form-group mb-4">
-            <label for="signup_phone" class="form-label">Phone Number *</label>
-            {{ signup_form.phone }}
-            {% if signup_form.phone.errors %}
-              <div class="text-xs mt-1" style="color: var(--rdh-error);">{{ signup_form.phone.errors.0 }}</div>
-            {% endif %}
-          </div>
-
-          <div class="form-group mb-5">
-            <label for="signup_email" class="form-label">Email Address *</label>
-            {{ signup_form.email }}
-            {% if signup_form.email.errors %}
-              <div class="text-xs mt-2 p-2.5" style="color: var(--rdh-error); background: var(--color-danger-light); border-radius: var(--radius-sm);">
-                {{ signup_form.email.errors.0 }}
-                <div class="mt-2">
-                  <button type="button" @click="mode = 'login'" class="text-xs text-bold" style="color: var(--color-brand-primary); text-decoration: underline; background: none; border: none; padding: 0; cursor: pointer;">
-                    Log in with existing account &rarr;
-                  </button>
-                </div>
-              </div>
-            {% endif %}
-          </div>
-
-          <button type="submit" class="btn btn-primary btn-block btn-lg glow-hover">
-            Create Account & Send Code
-          </button>
-        </form>
-
-        <div class="text-center mt-4 pt-3" style="border-top: 1px solid var(--border-subtle);">
-          <button type="button" @click="mode = 'login'" class="text-xs text-muted" style="background: none; border: none; padding: 0; cursor: pointer;">
-            Already have an account? <strong style="color: var(--color-brand-primary);">Log in &rarr;</strong>
-          </button>
-        </div>
-      </div>
-
+    <div class="text-center mt-4 pt-3" style="border-top: 1px solid var(--border-subtle);">
+      <a href="{% url 'customer_auth:signup' %}" class="text-xs text-muted">
+        New customer? <strong style="color: var(--color-brand-primary);">Create an account &rarr;</strong>
+      </a>
     </div>
   </div>
 </div>

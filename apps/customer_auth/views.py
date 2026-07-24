@@ -23,105 +23,120 @@ def get_logged_in_customer(request) -> Customer | None:
 
 @require_http_methods(["GET", "POST"])
 def customer_login(request):
-    """Customer authentication page with two explicit paths:
-    1. Existing Customer Login (Email only)
-    2. New Customer Create Account (Phone + Email)
-    """
+    """Page 1: Existing Customer Login — accepts Email only."""
     if get_logged_in_customer(request):
         cart_raw = request.session.get("delv_cart", {})
         if cart_raw:
             return redirect("orders_customer:checkout")
         return redirect("orders_customer:menu")
 
-    active_mode = request.GET.get("mode", "login")
     login_form = ExistingCustomerLoginForm()
-    signup_form = NewCustomerSignupForm()
 
     if request.method == "POST":
-        action = request.POST.get("action", "")
-        # Fallback detection if action field is missing
-        if action == "login" or ("email" in request.POST and "phone" not in request.POST):
-            active_mode = "login"
-            login_form = ExistingCustomerLoginForm(request.POST)
-            if login_form.is_valid():
-                email = login_form.cleaned_data["email"]
-                customer = Customer.objects.filter(email=email).first()
-                if not customer:
-                    login_form.add_error(
-                        "email",
-                        "No account found with this email. Would you like to create one?",
+        action = request.POST.get("action", "login")
+        if action == "signup" or ("phone" in request.POST and "email" in request.POST):
+            return customer_signup(request)
+
+        login_form = ExistingCustomerLoginForm(request.POST)
+        if login_form.is_valid():
+            email = login_form.cleaned_data["email"]
+            customer = Customer.objects.filter(email=email).first()
+            if not customer:
+                login_form.add_error(
+                    "email",
+                    "No account found with this email. Would you like to create one?",
+                )
+            else:
+                phone = customer.phone or "0000000000"
+                is_allowed, _ = services.check_rate_limit(phone, email)
+                if not is_allowed:
+                    messages.error(
+                        request,
+                        "Too many OTP requests for this account. Please wait 10 minutes before requesting a new code.",
                     )
                 else:
-                    phone = customer.phone or "0000000000"
-                    is_allowed, _ = services.check_rate_limit(phone, email)
-                    if not is_allowed:
-                        messages.error(
-                            request,
-                            "Too many OTP requests for this account. Please wait 10 minutes before requesting a new code.",
-                        )
-                    else:
-                        otp = services.generate_otp()
-                        services.store_otp_in_redis(phone, email, otp)
-                        services.increment_rate_limit(phone, email)
-                        services.send_otp_email(email, otp)
+                    otp = services.generate_otp()
+                    services.store_otp_in_redis(phone, email, otp)
+                    services.increment_rate_limit(phone, email)
+                    services.send_otp_email(email, otp)
 
-                        request.session["pending_otp_phone"] = phone
-                        request.session["pending_otp_email"] = email
-                        request.session["pending_otp_timestamp"] = int(time.time())
-                        request.session["pending_otp_auth_mode"] = "login"
-                        request.session.modified = True
+                    request.session["pending_otp_phone"] = phone
+                    request.session["pending_otp_email"] = email
+                    request.session["pending_otp_timestamp"] = int(time.time())
+                    request.session["pending_otp_auth_mode"] = "login"
+                    request.session.modified = True
 
-                        messages.success(request, f"We've sent a verification code to {email}")
-                        return redirect("customer_auth:verify_otp")
-
-        elif action == "signup" or ("phone" in request.POST and "email" in request.POST):
-            active_mode = "signup"
-            signup_form = NewCustomerSignupForm(request.POST)
-            if signup_form.is_valid():
-                phone = signup_form.cleaned_data["phone"]
-                email = signup_form.cleaned_data["email"]
-                if Customer.objects.filter(email=email).exists():
-                    signup_form.add_error(
-                        "email",
-                        "An account already exists with this email. Please log in with your existing account instead.",
-                    )
-                elif Customer.objects.filter(phone=phone).exists():
-                    signup_form.add_error(
-                        "phone",
-                        "An account already exists with this phone number. Please use 'Existing Customer — Login' instead.",
-                    )
-                else:
-                    is_allowed, _ = services.check_rate_limit(phone, email)
-                    if not is_allowed:
-                        messages.error(
-                            request,
-                            "Too many OTP requests for this phone/email. Please wait 10 minutes before requesting a new code.",
-                        )
-                    else:
-                        otp = services.generate_otp()
-                        services.store_otp_in_redis(phone, email, otp)
-                        services.increment_rate_limit(phone, email)
-                        services.send_otp_email(email, otp)
-
-                        request.session["pending_otp_phone"] = phone
-                        request.session["pending_otp_email"] = email
-                        request.session["pending_otp_timestamp"] = int(time.time())
-                        request.session["pending_otp_auth_mode"] = "signup"
-                        request.session.modified = True
-
-                        messages.success(
-                            request,
-                            f"We've sent a verification code to {email} to create your account",
-                        )
-                        return redirect("customer_auth:verify_otp")
+                    messages.success(request, f"We've sent a verification code to {email}")
+                    return redirect("customer_auth:verify_otp")
 
     context = {
         "login_form": login_form,
-        "signup_form": signup_form,
-        "active_mode": active_mode,
-        "form": signup_form if active_mode == "signup" else login_form,
+        "form": login_form,
     }
     return render(request, "customer_auth/login.html", context)
+
+
+@require_http_methods(["GET", "POST"])
+def customer_signup(request):
+    """Page 2: New Customer Create Account — accepts Phone & Email."""
+    if get_logged_in_customer(request):
+        cart_raw = request.session.get("delv_cart", {})
+        if cart_raw:
+            return redirect("orders_customer:checkout")
+        return redirect("orders_customer:menu")
+
+    signup_form = NewCustomerSignupForm()
+
+    if request.method == "POST":
+        action = request.POST.get("action", "signup")
+        if action == "login" or ("email" in request.POST and "phone" not in request.POST):
+            return customer_login(request)
+
+        signup_form = NewCustomerSignupForm(request.POST)
+        if signup_form.is_valid():
+            phone = signup_form.cleaned_data["phone"]
+            email = signup_form.cleaned_data["email"]
+
+            if Customer.objects.filter(email=email).exists():
+                signup_form.add_error(
+                    "email",
+                    "An account already exists with this email. Please log in with your existing account instead.",
+                )
+            elif Customer.objects.filter(phone=phone).exists():
+                signup_form.add_error(
+                    "phone",
+                    "An account already exists with this phone number. Please use 'Existing Customer — Login' instead.",
+                )
+            else:
+                is_allowed, _ = services.check_rate_limit(phone, email)
+                if not is_allowed:
+                    messages.error(
+                        request,
+                        "Too many OTP requests for this phone/email. Please wait 10 minutes before requesting a new code.",
+                    )
+                else:
+                    otp = services.generate_otp()
+                    services.store_otp_in_redis(phone, email, otp)
+                    services.increment_rate_limit(phone, email)
+                    services.send_otp_email(email, otp)
+
+                    request.session["pending_otp_phone"] = phone
+                    request.session["pending_otp_email"] = email
+                    request.session["pending_otp_timestamp"] = int(time.time())
+                    request.session["pending_otp_auth_mode"] = "signup"
+                    request.session.modified = True
+
+                    messages.success(
+                        request,
+                        f"We've sent a verification code to {email} to create your account",
+                    )
+                    return redirect("customer_auth:verify_otp")
+
+    context = {
+        "signup_form": signup_form,
+        "form": signup_form,
+    }
+    return render(request, "customer_auth/signup.html", context)
 
 
 @require_http_methods(["GET", "POST"])

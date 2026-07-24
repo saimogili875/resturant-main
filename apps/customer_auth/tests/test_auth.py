@@ -95,11 +95,11 @@ def wait_for_mail():
 @pytest.mark.django_db
 def test_case_2_new_email_create_account_succeeds(client):
     """Case 2: New email -> 'New Customer — Create Account' -> OTP sends, verify creates account correctly."""
-    login_url = reverse("customer_auth:login")
+    signup_url = reverse("customer_auth:signup")
     mail.outbox.clear()
 
     post_data = {"action": "signup", "phone": "9876543210", "email": "newuser@example.com"}
-    res = client.post(login_url, post_data)
+    res = client.post(signup_url, post_data)
     assert res.status_code == 302
     assert res.url == reverse("customer_auth:verify_otp")
 
@@ -131,9 +131,9 @@ def test_case_3_existing_email_create_account_fails(client):
     Customer.objects.create(phone="9876543210", email="existing@example.com", name="Bob")
     mail.outbox.clear()
 
-    login_url = reverse("customer_auth:login")
+    signup_url = reverse("customer_auth:signup")
     post_data = {"action": "signup", "phone": "9876543210", "email": "existing@example.com"}
-    res = client.post(login_url, post_data)
+    res = client.post(signup_url, post_data)
     assert res.status_code == 200
     assert "An account already exists with this email" in res.content.decode("utf-8")
     assert len(mail.outbox) == 0
