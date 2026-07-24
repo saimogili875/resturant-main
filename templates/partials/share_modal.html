@@ -6,18 +6,24 @@
   title: 'Cafe Rudra — Named After the Storm',
   text: 'Golden string lights, a black double-decker frame, and the calm after the storm. Come sit, sip, and stay a while.',
   url: window.location.origin + window.location.pathname,
-  share() {
+  openModal() {
     this.open = true;
+  },
+  closeModal() {
+    this.open = false;
   },
   copyLink() {
     navigator.clipboard.writeText(this.url).then(() => {
       this.copied = true;
       setTimeout(() => { this.copied = false; }, 2500);
+    }).catch(() => {
+      this.copied = true;
+      setTimeout(() => { this.copied = false; }, 2500);
     });
   }
 }">
-  <!-- Share Button -->
-  <button type="button" @click="share()" class="btn btn-xs btn-outline inline-flex items-center gap-1.5 glow-hover" title="Share Website" style="display: inline-flex; align-items: center; gap: 0.35rem; border-color: var(--color-brand-primary); color: var(--color-brand-primary); padding: 0.35rem 0.65rem; border-radius: var(--radius-sm); font-weight: 600;">
+  <!-- Share Button in Header -->
+  <button type="button" @click="openModal()" class="btn btn-xs btn-outline inline-flex items-center gap-1.5 glow-hover" title="Share Website" style="display: inline-flex; align-items: center; gap: 0.35rem; border-color: var(--color-brand-primary); color: var(--color-brand-primary); padding: 0.35rem 0.65rem; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer;">
     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="18" cy="5" r="3"></circle>
       <circle cx="6" cy="12" r="3"></circle>
@@ -30,15 +36,15 @@
 
   <!-- Share Modal Dialog -->
   <template x-teleport="body">
-    <div x-show="open" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4" style="position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 1rem; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);">
-      <div @click.outside="open = false" class="card card-body w-full max-w-sm" style="background: var(--rdh-surface-container); border: 1px solid rgba(255,255,255,0.15); border-radius: var(--radius-lg); padding: 1.25rem; color: #fff; box-shadow: 0 20px 40px rgba(0,0,0,0.6); max-width: 380px;">
+    <div x-show="open" x-cloak class="share-modal-overlay">
+      <div @click.outside="closeModal()" class="card card-body w-full max-w-sm" style="background: var(--rdh-surface-container); border: 1px solid rgba(255,255,255,0.15); border-radius: var(--radius-lg); padding: 1.25rem; color: #fff; box-shadow: 0 20px 40px rgba(0,0,0,0.6); max-width: 380px; width: 100%; position: relative; z-index: 10000;">
         
         <!-- Header -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
           <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: var(--color-brand-primary); display: flex; align-items: center; gap: 0.4rem;">
             <span>✨ Share Cafe Rudra</span>
           </h3>
-          <button type="button" @click="open = false" style="background: none; border: none; color: #aaa; font-size: 1.5rem; cursor: pointer; padding: 0.25rem; line-height: 1;">&times;</button>
+          <button type="button" @click="closeModal()" style="background: none; border: none; color: #aaa; font-size: 1.5rem; cursor: pointer; padding: 0.25rem; line-height: 1;">&times;</button>
         </div>
 
         <!-- Image Card Preview inside Share Modal -->
@@ -78,7 +84,7 @@
         <!-- Copy Direct Link Box -->
         <div style="background: rgba(255,255,255,0.05); padding: 0.5rem 0.75rem; border-radius: var(--radius-md); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: space-between;">
           <input type="text" :value="url" readonly style="background: none; border: none; color: #ddd; font-size: 0.75rem; width: 70%; outline: none;">
-          <button type="button" @click="copyLink()" class="btn btn-xs btn-primary" style="padding: 0.35rem 0.6rem; font-size: 0.75rem; border-radius: var(--radius-sm);">
+          <button type="button" @click="copyLink()" class="btn btn-xs btn-primary" style="padding: 0.35rem 0.6rem; font-size: 0.75rem; border-radius: var(--radius-sm); cursor: pointer;">
             <span x-text="copied ? 'Copied!' : 'Copy Link'"></span>
           </button>
         </div>
