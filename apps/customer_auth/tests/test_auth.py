@@ -78,9 +78,18 @@ def test_case_1_new_email_existing_customer_login_fails(client):
 
     res = client.post(login_url, {"action": "login", "email": "notfound@example.com"})
     assert res.status_code == 200
-    assert "We couldn't find an account with this email" in res.content.decode("utf-8")
+    content = res.content.decode("utf-8")
+    assert "We couldn&#x27;t find an account with this email" in content or "We couldn't find an account with this email" in content
     assert len(mail.outbox) == 0
     assert not Customer.objects.filter(email="notfound@example.com").exists()
+
+
+def wait_for_mail():
+    import time
+    for _ in range(30):
+        if len(mail.outbox) > 0:
+            return
+        time.sleep(0.05)
 
 
 @pytest.mark.django_db
@@ -94,6 +103,7 @@ def test_case_2_new_email_create_account_succeeds(client):
     assert res.status_code == 302
     assert res.url == reverse("customer_auth:verify_otp")
 
+    wait_for_mail()
     # OTP email sent
     assert len(mail.outbox) == 1
 
@@ -141,6 +151,7 @@ def test_case_4_existing_email_existing_customer_login_succeeds(client):
     assert res.status_code == 302
     assert res.url == reverse("customer_auth:verify_otp")
 
+    wait_for_mail()
     # OTP email sent
     assert len(mail.outbox) == 1
 
