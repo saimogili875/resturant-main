@@ -43,3 +43,15 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
 SECURE_REFERRER_POLICY = "same-origin"
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# ---------- email validation in prod ----------
+if not EMAIL_HOST_USER or not EMAIL_HOST_PASSWORD:
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.error("PRODUCTION CONFIG ERROR: EMAIL_HOST_USER or EMAIL_HOST_PASSWORD environment variable is missing or blank!")
+    from django.core.exceptions import ImproperlyConfigured
+    raise ImproperlyConfigured(
+        "EMAIL_HOST_USER and EMAIL_HOST_PASSWORD environment variables must be non-empty in production (DEBUG=False). "
+        "Please set EMAIL_HOST_USER and EMAIL_HOST_PASSWORD in your Render Environment settings."
+    )
+
