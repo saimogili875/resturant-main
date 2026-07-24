@@ -8,6 +8,7 @@ class ExistingCustomerLoginForm(forms.Form):
     email = forms.EmailField(
         widget=forms.EmailInput(
             attrs={
+                "id": "login_email",
                 "class": "form-input",
                 "placeholder": "your.email@example.com",
                 "required": True,
@@ -28,6 +29,7 @@ class NewCustomerSignupForm(forms.Form):
         max_length=20,
         widget=forms.TextInput(
             attrs={
+                "id": "signup_phone",
                 "class": "form-input",
                 "placeholder": "e.g. +91 9876543210 or 9876543210",
                 "required": True,
@@ -40,6 +42,7 @@ class NewCustomerSignupForm(forms.Form):
     email = forms.EmailField(
         widget=forms.EmailInput(
             attrs={
+                "id": "signup_email",
                 "class": "form-input",
                 "placeholder": "your.email@example.com",
                 "required": True,
@@ -70,6 +73,7 @@ class OTPVerifyForm(forms.Form):
         min_length=6,
         widget=forms.TextInput(
             attrs={
+                "id": "otp_code",
                 "class": "form-input text-center text-xl tracking-wider",
                 "placeholder": "123456",
                 "required": True,

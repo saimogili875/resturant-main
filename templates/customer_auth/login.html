@@ -5,6 +5,7 @@
 
 {% block content %}
 <style>
+  [x-cloak] { display: none !important; }
   .flip-card-wrapper {
     perspective: 1000px;
     width: 100%;
@@ -79,7 +80,7 @@
           <input type="hidden" name="action" value="login">
 
           <div class="form-group mb-5">
-            <label for="{{ login_form.email.id_for_label }}" class="form-label">Email Address *</label>
+            <label for="login_email" class="form-label">Email Address *</label>
             {{ login_form.email }}
             {% if login_form.email.errors %}
               <div class="text-xs mt-2 p-2.5" style="color: var(--rdh-error); background: var(--color-danger-light); border-radius: var(--radius-sm);">
@@ -115,7 +116,7 @@
           <input type="hidden" name="action" value="signup">
 
           <div class="form-group mb-4">
-            <label for="{{ signup_form.phone.id_for_label }}" class="form-label">Phone Number *</label>
+            <label for="signup_phone" class="form-label">Phone Number *</label>
             {{ signup_form.phone }}
             {% if signup_form.phone.errors %}
               <div class="text-xs mt-1" style="color: var(--rdh-error);">{{ signup_form.phone.errors.0 }}</div>
@@ -123,7 +124,7 @@
           </div>
 
           <div class="form-group mb-5">
-            <label for="{{ signup_form.email.id_for_label }}" class="form-label">Email Address *</label>
+            <label for="signup_email" class="form-label">Email Address *</label>
             {{ signup_form.email }}
             {% if signup_form.email.errors %}
               <div class="text-xs mt-2 p-2.5" style="color: var(--rdh-error); background: var(--color-danger-light); border-radius: var(--radius-sm);">

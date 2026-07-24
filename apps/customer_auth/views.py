@@ -33,7 +33,7 @@ def customer_login(request):
             return redirect("orders_customer:checkout")
         return redirect("orders_customer:menu")
 
-    active_mode = request.GET.get("mode", "choice")
+    active_mode = request.GET.get("mode", "login")
     login_form = ExistingCustomerLoginForm()
     signup_form = NewCustomerSignupForm()
 
