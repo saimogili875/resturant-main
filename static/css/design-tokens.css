@@ -921,8 +921,11 @@ img {
   text-align: center;
   padding: 120px var(--page-margin) 80px;
   background:
-    radial-gradient(circle at 50% 30%, rgba(242, 202, 80, 0.12), transparent 55%),
-    linear-gradient(180deg, var(--rdh-bg-black), var(--rdh-surface));
+    radial-gradient(circle at 50% 30%, rgba(242, 202, 80, 0.14), transparent 55%),
+    linear-gradient(180deg, rgba(14, 13, 12, 0.72) 0%, rgba(22, 20, 18, 0.88) 100%),
+    url('../images/exterior.jpeg') center/cover no-repeat;
+  background-size: cover;
+  background-position: center;
   overflow: hidden;
 }
 .rdh-hero__glow {
@@ -933,6 +936,25 @@ img {
   will-change: transform;
 }
 .rdh-hero__inner { position: relative; z-index: 1; max-width: 900px; }
+.rdh-hero__logo {
+  max-width: 200px;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  margin: 0 auto var(--space-4);
+  filter: drop-shadow(0 0 20px rgba(242, 202, 80, 0.35)) drop-shadow(0 8px 24px rgba(0, 0, 0, 0.8));
+  transition: transform var(--transition-base), filter var(--transition-base);
+}
+.rdh-hero__logo:hover {
+  transform: scale(1.04);
+  filter: drop-shadow(0 0 30px rgba(242, 202, 80, 0.55)) drop-shadow(0 12px 32px rgba(0, 0, 0, 0.95));
+}
+@media (max-width: 767px) {
+  .rdh-hero__logo {
+    max-width: 140px;
+    margin-bottom: var(--space-3);
+  }
+}
 .rdh-hero__wordmark {
   font-family: var(--font-display);
   font-weight: var(--fw-bold);
@@ -1122,6 +1144,241 @@ img {
 .justify-end { justify-content: flex-end; }
 .justify-center { justify-content: center; }
 .flex-wrap { flex-wrap: wrap; }
+
+/* ==========================================================================
+   ORDER STATUS TIMELINE & PROGRESS TRACKER
+   ========================================================================== */
+.timeline-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  padding: var(--space-5);
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-4);
+  box-shadow: var(--shadow-md);
+}
+
+.timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-6);
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--rdh-surface-container-high);
+}
+
+.timeline-title {
+  font-family: var(--font-display);
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Stepper Container: Vertical on Mobile, Horizontal on Desktop */
+.timeline-stepper {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  gap: var(--space-5);
+  padding: var(--space-2) var(--space-1);
+}
+
+@media (min-width: 768px) {
+  .timeline-stepper {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0;
+    padding: var(--space-4) var(--space-2);
+  }
+}
+
+/* Timeline Step Element */
+.timeline-step {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  position: relative;
+  flex: 1;
+}
+
+@media (min-width: 768px) {
+  .timeline-step {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+}
+
+/* Node (Circle) */
+.step-node {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  z-index: 2;
+  transition: all var(--transition-base);
+  flex-shrink: 0;
+  background-color: var(--rdh-surface-container-low);
+  border: 2px solid var(--border-subtle);
+  color: var(--text-tertiary);
+}
+
+/* Connector Line between steps */
+.step-line {
+  position: absolute;
+  background-color: var(--border-subtle);
+  transition: background-color var(--transition-base);
+  z-index: 1;
+}
+
+@media (max-width: 767px) {
+  .step-line {
+    top: 38px;
+    left: 18px;
+    width: 2px;
+    height: calc(100% + var(--space-5) - 38px);
+  }
+}
+
+@media (min-width: 768px) {
+  .step-line {
+    top: 18px;
+    left: calc(50% + 19px);
+    width: calc(100% - 38px);
+    height: 2px;
+  }
+}
+
+.timeline-step:last-child .step-line {
+  display: none !important;
+}
+
+/* Step Content (Labels) */
+.step-content {
+  margin-left: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 38px;
+}
+
+@media (min-width: 768px) {
+  .step-content {
+    margin-left: 0;
+    margin-top: var(--space-3);
+    align-items: center;
+    padding: 0 var(--space-1);
+    min-height: auto;
+  }
+}
+
+.step-label {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  color: var(--text-tertiary);
+  transition: color var(--transition-base);
+  line-height: var(--lh-tight);
+}
+
+@media (min-width: 768px) {
+  .step-label {
+    max-width: 105px;
+    text-align: center;
+  }
+}
+
+/* STATES */
+
+/* Completed Step */
+.timeline-step.completed .step-node {
+  background-color: var(--rdh-primary);
+  border-color: var(--rdh-primary);
+  color: var(--rdh-on-primary);
+  box-shadow: 0 0 12px rgba(242, 202, 80, 0.25);
+}
+
+.timeline-step.completed .step-label {
+  color: var(--text-primary);
+  font-weight: var(--fw-semibold);
+}
+
+.step-line.completed {
+  background-color: var(--rdh-primary);
+}
+
+/* Active Step */
+.timeline-step.active .step-node {
+  background-color: var(--rdh-bg-black);
+  border-color: var(--rdh-primary);
+  color: var(--rdh-primary);
+  box-shadow: 0 0 0 4px rgba(242, 202, 80, 0.2), var(--glow-gold);
+  animation: pulse-gold 2s infinite;
+}
+
+.timeline-step.active .step-label {
+  color: var(--rdh-primary);
+  font-weight: var(--fw-bold);
+}
+
+/* Upcoming Step */
+.timeline-step.upcoming .step-node {
+  background-color: var(--rdh-surface-container-low);
+  border-color: var(--border-subtle);
+  color: var(--text-tertiary);
+}
+
+.timeline-step.upcoming .step-label {
+  color: var(--text-tertiary);
+}
+
+/* Pulse animation for active step */
+@keyframes pulse-gold {
+  0% {
+    box-shadow: 0 0 0 0 rgba(242, 202, 80, 0.5), 0 0 10px rgba(242, 202, 80, 0.3);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(242, 202, 80, 0), 0 0 18px rgba(242, 202, 80, 0.6);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(242, 202, 80, 0), 0 0 10px rgba(242, 202, 80, 0.3);
+  }
+}
+
+/* Cancelled State Card */
+.cancelled-card {
+  background: rgba(255, 180, 171, 0.1);
+  border: 1px solid var(--rdh-error);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.cancelled-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 180, 171, 0.2);
+  color: var(--rdh-error);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
 
 .badge-secondary { background-color: var(--rdh-surface-container-high); color: var(--text-secondary); }
 

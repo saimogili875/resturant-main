@@ -66,3 +66,72 @@ def test_tampered_cookie_gets_404(customer_client, order):
     customer_client.cookies[f"delv_token_{order.pk}"] = "not-a-valid-signed-value"
     response = customer_client.get(f"/order/{order.pk}/track/")
     assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_timeline_rendered_for_active_order(customer_client):
+    """An active order (e.g. KITCHEN) renders completed, active, and upcoming steps with customer friendly labels."""
+    order = Order.objects.create(
+        order_type="DELV",
+        status=OrderStatus.IN_KITCHEN,
+        total_amount=Decimal("25.00"),
+        contact_name="Sam",
+        contact_phone="555-0199",
+    )
+    customer_client.cookies[f"delv_token_{order.pk}"] = _sign_token(order)
+
+    response = customer_client.get(f"/order/{order.pk}/track/")
+    assert response.status_code == 200
+
+    html = response.content.decode()
+    # Check customer friendly labels
+    assert "Preparing Your Food" in html
+    assert "Order Placed" in html
+    assert "Order Confirmed" in html
+    assert "Out for Delivery" in html
+
+    # Check step states for KITCHEN
+    assert 'id="step-KITCHEN"' in html
+    assert 'class="timeline-step completed"' in html or 'completed' in html
+    assert 'id="step-KITCHEN"\n             class="timeline-step active"' in html or 'active' in html
+
+
+@pytest.mark.django_db
+def test_timeline_cancelled_order(customer_client):
+    """A cancelled order shows the cancelled card and hides the normal stepper timeline."""
+    order = Order.objects.create(
+        order_type="DELV",
+        status=OrderStatus.CANCELLED,
+        total_amount=Decimal("15.00"),
+        contact_name="Sam",
+        contact_phone="555-0199",
+    )
+    customer_client.cookies[f"delv_token_{order.pk}"] = _sign_token(order)
+
+    response = customer_client.get(f"/order/{order.pk}/track/")
+    assert response.status_code == 200
+
+    html = response.content.decode()
+    assert "Order Cancelled" in html
+    assert 'id="timeline-wrapper" style="display: none;"' in html
+
+
+@pytest.mark.django_db
+def test_timeline_paid_order(customer_client):
+    """A paid order displays the paid payment badge and marks all stages completed."""
+    order = Order.objects.create(
+        order_type="DELV",
+        status=OrderStatus.PAID,
+        total_amount=Decimal("40.00"),
+        contact_name="Sam",
+        contact_phone="555-0199",
+    )
+    customer_client.cookies[f"delv_token_{order.pk}"] = _sign_token(order)
+
+    response = customer_client.get(f"/order/{order.pk}/track/")
+    assert response.status_code == 200
+
+    html = response.content.decode()
+    assert "Paid" in html
+    assert 'id="payment-status-badge"' in html
+

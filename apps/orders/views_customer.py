@@ -135,7 +135,104 @@ def cart_add(request):
         "cart_count": cart_count,
         "error": error,
     }
-    return render(request, "orders/customer/partials/cart_bar.html", context)
+    response = render(request, "orders/customer/partials/cart_bar.html", context)
+    if request.headers.get("HX-Request"):
+        response["HX-Trigger"] = "cartUpdated"
+    return response
+
+
+@require_POST
+@customer_login_required
+def cart_update(request):
+    """HTMX / Form endpoint to update or remove a menu item quantity in the delivery session cart."""
+    menu_item_id = request.POST.get("menu_item_id")
+    action = request.POST.get("action")
+    
+    try:
+        raw_qty = request.POST.get("quantity")
+        quantity = int(raw_qty) if raw_qty is not None and raw_qty != "" else None
+    except (ValueError, TypeError):
+        quantity = None
+
+    error = None
+    if menu_item_id:
+        try:
+            mid_int = int(menu_item_id)
+        except (ValueError, TypeError):
+            mid_int = None
+            
+        if mid_int is not None:
+            cart = request.session.get("delv_cart", {})
+            item_key = str(mid_int)
+            current_qty = cart.get(item_key, 0)
+
+            if action == "remove":
+                new_qty = 0
+            elif action == "decrement":
+                new_qty = current_qty - (quantity if quantity is not None else 1)
+            elif action == "increment":
+                new_qty = current_qty + (quantity if quantity is not None else 1)
+            elif quantity is not None:
+                new_qty = quantity
+            else:
+                new_qty = current_qty
+
+            if new_qty <= 0:
+                if item_key in cart:
+                    del cart[item_key]
+                    request.session["delv_cart"] = cart
+                    request.session.modified = True
+            else:
+                mi = MenuItem.objects.filter(pk=mid_int).first()
+                if not mi or not mi.is_available:
+                    error = f"'{mi.name if mi else menu_item_id}' is currently unavailable."
+                elif not mi.is_orderable:
+                    error = f"'{mi.name}' is sold out."
+                elif mi.track_stock and mi.stock_quantity < new_qty:
+                    if mi.stock_quantity:
+                        error = f"Only {mi.stock_quantity} left of '{mi.name}'."
+                    else:
+                        error = f"'{mi.name}' is sold out."
+                else:
+                    cart[item_key] = new_qty
+                    request.session["delv_cart"] = cart
+                    request.session.modified = True
+
+    cart_items, cart_total, cart_count = _get_delivery_cart(request.session)
+    
+    is_htmx = bool(request.headers.get("HX-Request"))
+    target = request.headers.get("HX-Target")
+
+    context = {
+        "cart_items": cart_items,
+        "cart_total": cart_total,
+        "cart_count": cart_count,
+        "error": error,
+    }
+
+    if is_htmx:
+        if cart_count == 0 and target == "order-summary-container":
+            response = redirect("orders_customer:menu")
+            response["HX-Redirect"] = response.url
+            return response
+            
+        if target == "order-summary-container":
+            response = render(request, "orders/customer/partials/checkout_summary.html", context)
+            response["HX-Trigger"] = "cartUpdated"
+            return response
+
+        response = render(request, "orders/customer/partials/cart_bar.html", context)
+        response["HX-Trigger"] = "cartUpdated"
+        return response
+
+    referer = request.META.get("HTTP_REFERER", "")
+    if "checkout" in referer:
+        if cart_count == 0:
+            return redirect("orders_customer:menu")
+        return redirect("orders_customer:checkout")
+
+    response = render(request, "orders/customer/partials/cart_bar.html", context)
+    return response
 
 
 @checkout
@@ -306,6 +403,29 @@ def _may_access_order(request, order: Order) -> bool:
     )
 
 
+CUSTOMER_STATUS_LABELS = {
+    OrderStatus.PLACED: "Order Placed",
+    OrderStatus.APPROVED: "Order Confirmed",
+    OrderStatus.IN_KITCHEN: "Preparing Your Food",
+    OrderStatus.READY: "Ready for Pickup",
+    OrderStatus.DISPATCHED: "Out for Delivery",
+    OrderStatus.ARRIVED: "Agent Has Arrived",
+    OrderStatus.COLLECTED: "Delivered",
+    OrderStatus.PAID: "Paid",
+    OrderStatus.CANCELLED: "Order Cancelled",
+}
+
+TRACKING_STEPS = [
+    (OrderStatus.PLACED, "Order Placed"),
+    (OrderStatus.APPROVED, "Order Confirmed"),
+    (OrderStatus.IN_KITCHEN, "Preparing Your Food"),
+    (OrderStatus.READY, "Ready for Pickup"),
+    (OrderStatus.DISPATCHED, "Out for Delivery"),
+    (OrderStatus.ARRIVED, "Agent Has Arrived"),
+    (OrderStatus.COLLECTED, "Delivered"),
+]
+
+
 @require_GET
 @customer_login_required
 def track_order(request, pk):
@@ -317,14 +437,25 @@ def track_order(request, pk):
     if not _may_access_order(request, order):
         raise Http404("No such order.")
 
+    step_codes = [s[0] for s in TRACKING_STEPS]
+    if order.status == OrderStatus.PAID:
+        current_step_index = len(step_codes)
+    elif order.status in step_codes:
+        current_step_index = step_codes.index(order.status)
+    else:
+        current_step_index = 0
+
     context = {
         "order": order,
         "messages": order.messages.select_related("sender").all(),
         # Code -> human label map for the Alpine status ticker (safe JSON).
-        "status_labels": dict(OrderStatus.choices),
+        "status_labels": CUSTOMER_STATUS_LABELS,
+        "tracking_steps": TRACKING_STEPS,
+        "current_step_index": current_step_index,
         "delivery_customer": getattr(request, "delivery_customer", None),
     }
     return render(request, "orders/customer/track.html", context)
+
 
 
 @messaging

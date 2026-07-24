@@ -71,12 +71,32 @@
 
             <div>
               {% if item.is_orderable %}
-              <form hx-post="{% url 'orders_customer:cart_add' %}" hx-target="#cart-bar-container" hx-swap="innerHTML">
-                {% csrf_token %}
-                <input type="hidden" name="menu_item_id" value="{{ item.pk }}">
-                <input type="hidden" name="quantity" value="1">
-                <button type="submit" class="btn btn-primary btn-sm">+ Add</button>
-              </form>
+                {% with qty=cart_items|cart_qty:item.pk %}
+                  {% if qty > 0 %}
+                  <div class="flex items-center gap-1">
+                    <form hx-post="{% url 'orders_customer:cart_update' %}" hx-target="#cart-bar-container" hx-swap="innerHTML" style="display: inline;">
+                      {% csrf_token %}
+                      <input type="hidden" name="menu_item_id" value="{{ item.pk }}">
+                      <input type="hidden" name="action" value="decrement">
+                      <button type="submit" class="btn btn-outline btn-sm" aria-label="Decrease quantity" style="padding: 0.2rem 0.5rem; min-width: 28px;">-</button>
+                    </form>
+                    <span class="text-bold text-sm" style="min-width: 1.5rem; text-align: center; display: inline-block;">{{ qty }}</span>
+                    <form hx-post="{% url 'orders_customer:cart_update' %}" hx-target="#cart-bar-container" hx-swap="innerHTML" style="display: inline;">
+                      {% csrf_token %}
+                      <input type="hidden" name="menu_item_id" value="{{ item.pk }}">
+                      <input type="hidden" name="action" value="increment">
+                      <button type="submit" class="btn btn-outline btn-sm" aria-label="Increase quantity" style="padding: 0.2rem 0.5rem; min-width: 28px;">+</button>
+                    </form>
+                  </div>
+                  {% else %}
+                  <form hx-post="{% url 'orders_customer:cart_add' %}" hx-target="#cart-bar-container" hx-swap="innerHTML">
+                    {% csrf_token %}
+                    <input type="hidden" name="menu_item_id" value="{{ item.pk }}">
+                    <input type="hidden" name="quantity" value="1">
+                    <button type="submit" class="btn btn-primary btn-sm">+ Add</button>
+                  </form>
+                  {% endif %}
+                {% endwith %}
               {% else %}
               <button type="button" class="btn btn-secondary btn-sm" disabled style="cursor: not-allowed; opacity: 0.6;">+ Add</button>
               {% endif %}

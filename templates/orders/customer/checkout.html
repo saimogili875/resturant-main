@@ -41,23 +41,7 @@
   {% endif %}
 
   <!-- Order Summary Card -->
-  <div class="card mb-6">
-    <div class="card-body">
-      <h3 class="text-lg text-bold mb-3" style="color: var(--text-secondary);">Order Summary</h3>
-      <ul style="list-style: none; padding: 0; margin-bottom: var(--space-4); border-bottom: 1px solid var(--border-subtle); padding-bottom: var(--space-3);">
-        {% for entry in cart_items %}
-        <li class="flex justify-between mb-2">
-          <span>{{ entry.quantity }}x {{ entry.item.name }}</span>
-          <span class="text-bold">{{ entry.line_total|money }}</span>
-        </li>
-        {% endfor %}
-      </ul>
-      <div class="flex justify-between text-lg text-bold">
-        <span>Total Amount (COD)</span>
-        <span style="color: var(--color-success);">{{ cart_total|money }}</span>
-      </div>
-    </div>
-  </div>
+  {% include "orders/customer/partials/checkout_summary.html" %}
 
   <!-- Checkout Form -->
   <form method="post" action="{% url 'orders_customer:checkout' %}" class="card">

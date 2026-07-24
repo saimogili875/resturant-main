@@ -56,6 +56,79 @@ def test_cart_add_view(customer_client, burger):
 
 
 @pytest.mark.django_db
+def test_cart_update_decrement(customer_client, burger):
+    """POST /order/cart/update with action='decrement' decreases item quantity."""
+    session = customer_client.session
+    session["delv_cart"] = {str(burger.pk): 2}
+    session.save()
+
+    url = reverse("orders_customer:cart_update")
+    response = customer_client.post(url, {"menu_item_id": burger.pk, "action": "decrement"})
+    assert response.status_code == 200
+    assert customer_client.session["delv_cart"][str(burger.pk)] == 1
+    assert "1 item" in response.content.decode("utf-8")
+
+
+@pytest.mark.django_db
+def test_cart_update_remove_item_to_zero(customer_client, burger):
+    """POST /order/cart/update with action='remove' removes key from session cart."""
+    session = customer_client.session
+    session["delv_cart"] = {str(burger.pk): 2}
+    session.save()
+
+    url = reverse("orders_customer:cart_update")
+    response = customer_client.post(url, {"menu_item_id": burger.pk, "action": "remove"})
+    assert response.status_code == 200
+    assert str(burger.pk) not in customer_client.session.get("delv_cart", {})
+    assert "Select items from the delivery menu" in response.content.decode("utf-8")
+
+
+@pytest.mark.django_db
+def test_cart_update_decrement_last_item_clears_cart(customer_client, burger):
+    """POST /order/cart/update decrementing quantity of 1 removes item and empties cart."""
+    session = customer_client.session
+    session["delv_cart"] = {str(burger.pk): 1}
+    session.save()
+
+    url = reverse("orders_customer:cart_update")
+    response = customer_client.post(url, {"menu_item_id": burger.pk, "action": "decrement"})
+    assert response.status_code == 200
+    assert str(burger.pk) not in customer_client.session.get("delv_cart", {})
+
+
+@pytest.mark.django_db
+def test_cart_update_explicit_quantity(customer_client, burger):
+    """POST /order/cart/update with explicit quantity updates quantity in cart."""
+    session = customer_client.session
+    session["delv_cart"] = {str(burger.pk): 1}
+    session.save()
+
+    url = reverse("orders_customer:cart_update")
+    response = customer_client.post(url, {"menu_item_id": burger.pk, "quantity": 4})
+    assert response.status_code == 200
+    assert customer_client.session["delv_cart"][str(burger.pk)] == 4
+
+
+@pytest.mark.django_db
+def test_cart_update_checkout_target_empty_redirects(customer_client, burger):
+    """POST /order/cart/update from checkout targeting order summary redirects when cart becomes empty."""
+    session = customer_client.session
+    session["delv_cart"] = {str(burger.pk): 1}
+    session.save()
+
+    url = reverse("orders_customer:cart_update")
+    response = customer_client.post(
+        url,
+        {"menu_item_id": burger.pk, "action": "remove"},
+        HTTP_HX_REQUEST="true",
+        HTTP_HX_TARGET="order-summary-container",
+    )
+    assert response.status_code == 302
+    assert response["HX-Redirect"] == reverse("orders_customer:menu")
+
+
+
+@pytest.mark.django_db
 def test_checkout_get_redirects_when_empty(customer_client):
     """GET /order/checkout/ redirects to menu if cart is empty."""
     url = reverse("orders_customer:checkout")

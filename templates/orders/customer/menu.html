@@ -29,7 +29,12 @@
 </div>
 
 <!-- Menu Content (Category Pills + Menu Grid) -->
-<div id="menu-content">
+<div id="menu-content"
+     hx-get="{% url 'orders_customer:menu' %}"
+     hx-trigger="cartUpdated from:body"
+     hx-include="[name='search'], [name='category']"
+     hx-target="#menu-content"
+     hx-push-url="false">
   {% include "orders/customer/partials/menu_results.html" %}
 </div>
 

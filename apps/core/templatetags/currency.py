@@ -54,3 +54,21 @@ def money_int(value):
     Example: ``{{ 1250|money_int }}`` → ``₹1,250``
     """
     return _format_amount(value, decimal_places=0)
+
+
+@register.filter(name="cart_qty")
+def cart_qty(cart_items, item_id):
+    """Return quantity of item_id in cart_items list or dict.
+
+    Example: ``{{ cart_items|cart_qty:item.pk }}`` → ``2``
+    """
+    if not cart_items:
+        return 0
+    if isinstance(cart_items, dict):
+        return cart_items.get(str(item_id), 0) or cart_items.get(int(item_id), 0)
+    for entry in cart_items:
+        item = entry.get("item")
+        if item and getattr(item, "pk", None) == item_id:
+            return entry.get("quantity", 0)
+    return 0
+
