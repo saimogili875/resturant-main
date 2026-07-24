@@ -28,14 +28,14 @@
       <h1 class="app-header__title">RDH · Cafe Rudra</h1>
       <span class="app-header__subtitle">Fast Doorstep Delivery</span>
     </div>
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-2" style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-end;">
       {% include "partials/share_modal.html" %}
+      <a href="{% url 'orders_customer:my_orders' %}" class="btn btn-xs btn-outline" style="border-color: var(--color-brand-primary); color: var(--color-brand-primary); padding: 0.35rem 0.65rem; border-radius: var(--radius-sm); font-weight: 600; text-decoration: none;">
+        📦 My Orders
+      </a>
       {% if delivery_customer %}
-        <a href="{% url 'orders_customer:my_orders' %}" class="btn btn-xs btn-outline" style="border-color: var(--color-brand-primary); color: var(--color-brand-primary); padding: 0.35rem 0.65rem; border-radius: var(--radius-sm); font-weight: 600;">
-          📦 My Orders
-        </a>
         <span class="text-xs text-muted" title="{{ delivery_customer.email }}">
-          {{ delivery_customer.email|truncatechars:18 }}
+          {{ delivery_customer.email|truncatechars:14 }}
         </span>
         <a href="{% url 'customer_auth:logout' %}" class="btn btn-xs btn-outline">Logout</a>
       {% else %}
