@@ -80,9 +80,9 @@
                 <li style="display: flex; justify-content: space-between; font-size: 0.85rem; color: #ddd;">
                   <span>
                     <strong style="color: var(--color-brand-primary);">{{ item.quantity }}x</strong> 
-                    {{ item.menu_item.name|default:item.item_name }}
+                    {{ item.name_snap }}
                   </span>
-                  <span style="font-family: monospace; color: #aaa;">₹{{ item.price }}</span>
+                  <span style="font-family: monospace; color: #aaa;">₹{{ item.line_total }}</span>
                 </li>
               {% endfor %}
             </ul>

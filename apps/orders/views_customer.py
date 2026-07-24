@@ -366,7 +366,7 @@ def order_history(request):
     if delv_order_ids:
         query |= Q(pk__in=delv_order_ids)
 
-    orders_qs = Order.objects.filter(query).prefetch_related("items__menu_item").order_by("-created_at").distinct()
+    orders_qs = Order.objects.filter(query).prefetch_related("items").order_by("-created_at").distinct()
 
     completed_statuses = [OrderStatus.PAID, OrderStatus.COLLECTED, OrderStatus.CANCELLED]
 

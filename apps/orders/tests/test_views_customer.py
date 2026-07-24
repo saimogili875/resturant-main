@@ -176,9 +176,9 @@ def test_order_history_empty_state(customer_client):
 
 
 @pytest.mark.django_db
-def test_order_history_filters_all_completed_not_completed(customer_client):
+def test_order_history_filters_all_completed_not_completed(customer_client, burger):
     """Logged-in customer with orders in different statuses -> All, Completed, and Not Completed filters return correct items."""
-    from apps.orders.models import OrderStatus
+    from apps.orders.models import OrderItem, OrderStatus
     # Order 1: Completed / Paid
     order1 = Order.objects.create(
         order_type="DELV",
@@ -187,6 +187,14 @@ def test_order_history_filters_all_completed_not_completed(customer_client):
         contact_phone="9876543210",
         total_amount=Decimal("250.00"),
     )
+    OrderItem.objects.create(
+        order=order1,
+        menu_item=burger,
+        name_snap="Chicken Biryani",
+        unit_price=Decimal("250.00"),
+        quantity=1,
+    )
+
     # Order 2: Not Completed / In Kitchen
     order2 = Order.objects.create(
         order_type="DELV",
@@ -194,6 +202,13 @@ def test_order_history_filters_all_completed_not_completed(customer_client):
         contact_name="Test Customer",
         contact_phone="9876543210",
         total_amount=Decimal("180.00"),
+    )
+    OrderItem.objects.create(
+        order=order2,
+        menu_item=burger,
+        name_snap="Paneer Butter Masala",
+        unit_price=Decimal("180.00"),
+        quantity=1,
     )
 
     url = reverse("orders_customer:my_orders")
