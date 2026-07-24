@@ -71,81 +71,86 @@ def test_otp_rate_limiting():
 
 
 @pytest.mark.django_db
-def test_first_time_customer_login_and_otp_flow(client):
-    # Step 1: GET login page
+def test_case_1_new_email_existing_customer_login_fails(client):
+    """Case 1: New email -> 'Existing Customer Login' -> shows 'account not found' error, does NOT send OTP or create account."""
     login_url = reverse("customer_auth:login")
-    res = client.get(login_url)
+    mail.outbox.clear()
+
+    res = client.post(login_url, {"action": "login", "email": "notfound@example.com"})
     assert res.status_code == 200
-    assert "Continue" in res.content.decode("utf-8")
+    assert "We couldn't find an account with this email" in res.content.decode("utf-8")
+    assert len(mail.outbox) == 0
+    assert not Customer.objects.filter(email="notfound@example.com").exists()
 
-    # Step 2: POST login form (New Customer)
-    post_data = {"phone": "9876543210", "email": "newcustomer@example.com"}
-    # Confirm Customer row does NOT exist yet
-    assert not Customer.objects.filter(email="newcustomer@example.com").exists()
 
+@pytest.mark.django_db
+def test_case_2_new_email_create_account_succeeds(client):
+    """Case 2: New email -> 'New Customer — Create Account' -> OTP sends, verify creates account correctly."""
+    login_url = reverse("customer_auth:login")
+    mail.outbox.clear()
+
+    post_data = {"action": "signup", "phone": "9876543210", "email": "newuser@example.com"}
     res = client.post(login_url, post_data)
     assert res.status_code == 302
     assert res.url == reverse("customer_auth:verify_otp")
 
-    # Customer record still MUST NOT exist before OTP verification
-    assert not Customer.objects.filter(email="newcustomer@example.com").exists()
+    # OTP email sent
+    assert len(mail.outbox) == 1
 
-    # Step 3: GET verify OTP page -> check first-time messaging
-    verify_url = reverse("customer_auth:verify_otp")
-    res = client.get(verify_url)
-    assert res.status_code == 200
-    assert res.context["is_returning_customer"] is False
-    assert "Welcome! We&#x27;ve sent a verification code" in res.content.decode("utf-8") or "Welcome! We've sent a verification code" in res.content.decode("utf-8")
+    # Customer record NOT created before OTP verification
+    assert not Customer.objects.filter(email="newuser@example.com").exists()
 
     # Extract OTP code from mail body
     mail_body = mail.outbox[0].body
     import re
     otp_code = re.search(r"(\d{6})", mail_body).group(1)
 
-    # Step 4: POST correct OTP -> Customer record created now
+    # Verify OTP -> Customer created
+    verify_url = reverse("customer_auth:verify_otp")
     res = client.post(verify_url, {"otp": otp_code})
     assert res.status_code == 302
-    assert res.url == reverse("orders_customer:menu")
 
-    # Verify Customer object created & session set
-    customer = Customer.objects.get(email="newcustomer@example.com")
+    customer = Customer.objects.get(email="newuser@example.com")
     assert customer.phone == "9876543210"
     assert client.session.get("customer_id") == customer.pk
 
-    # Step 5: Logout
-    logout_url = reverse("customer_auth:logout")
-    res = client.post(logout_url)
-    assert res.status_code == 302
-    assert client.session.get("customer_id") is None
+
+@pytest.mark.django_db
+def test_case_3_existing_email_create_account_fails(client):
+    """Case 3: Existing/verified email -> 'New Customer — Create Account' -> shows 'account already exists' error, does NOT create duplicate."""
+    Customer.objects.create(phone="9876543210", email="existing@example.com", name="Bob")
+    mail.outbox.clear()
+
+    login_url = reverse("customer_auth:login")
+    post_data = {"action": "signup", "phone": "9876543210", "email": "existing@example.com"}
+    res = client.post(login_url, post_data)
+    assert res.status_code == 200
+    assert "An account already exists with this email" in res.content.decode("utf-8")
+    assert len(mail.outbox) == 0
+    assert Customer.objects.filter(email="existing@example.com").count() == 1
 
 
 @pytest.mark.django_db
-def test_returning_customer_flow(client):
-    # Pre-create returning Customer
-    existing_customer = Customer.objects.create(
-        phone="5551234567",
-        email="returning@example.com",
-        name="Alice",
-    )
+def test_case_4_existing_email_existing_customer_login_succeeds(client):
+    """Case 4: Existing/verified email -> 'Existing Customer — Login' -> OTP sends and logs them in correctly, no duplicate created."""
+    existing_customer = Customer.objects.create(phone="5551234567", email="returning@example.com", name="Alice")
+    mail.outbox.clear()
 
-    # POST login form
     login_url = reverse("customer_auth:login")
-    res = client.post(login_url, {"phone": "5551234567", "email": "returning@example.com"})
+    res = client.post(login_url, {"action": "login", "email": "returning@example.com"})
     assert res.status_code == 302
+    assert res.url == reverse("customer_auth:verify_otp")
 
-    # GET verify OTP page -> check returning messaging
-    verify_url = reverse("customer_auth:verify_otp")
-    res = client.get(verify_url)
-    assert res.status_code == 200
-    assert res.context["is_returning_customer"] is True
-    assert "Welcome back!" in res.content.decode("utf-8")
+    # OTP email sent
+    assert len(mail.outbox) == 1
 
     # Extract OTP code from mail body
     mail_body = mail.outbox[0].body
     import re
     otp_code = re.search(r"(\d{6})", mail_body).group(1)
 
-    # POST correct OTP -> verify no duplicate Customer created
+    # Verify OTP -> logged in as returning customer
+    verify_url = reverse("customer_auth:verify_otp")
     res = client.post(verify_url, {"otp": otp_code})
     assert res.status_code == 302
     assert Customer.objects.filter(email="returning@example.com").count() == 1

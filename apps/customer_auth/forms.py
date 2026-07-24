@@ -1,8 +1,29 @@
-from django import forms
 import re
+from django import forms
 
 
-class CustomerLoginForm(forms.Form):
+class ExistingCustomerLoginForm(forms.Form):
+    """Form for returning customers logging in with Email only."""
+
+    email = forms.EmailField(
+        widget=forms.EmailInput(
+            attrs={
+                "class": "form-input",
+                "placeholder": "your.email@example.com",
+                "required": True,
+                "autocomplete": "email",
+            }
+        ),
+        label="Email Address",
+    )
+
+    def clean_email(self):
+        return self.cleaned_data.get("email", "").strip().lower()
+
+
+class NewCustomerSignupForm(forms.Form):
+    """Form for new customers signing up with Phone + Email."""
+
     phone = forms.CharField(
         max_length=20,
         widget=forms.TextInput(
@@ -11,6 +32,7 @@ class CustomerLoginForm(forms.Form):
                 "placeholder": "e.g. +91 9876543210 or 9876543210",
                 "required": True,
                 "type": "tel",
+                "autocomplete": "tel",
             }
         ),
         label="Phone Number",
@@ -21,6 +43,7 @@ class CustomerLoginForm(forms.Form):
                 "class": "form-input",
                 "placeholder": "your.email@example.com",
                 "required": True,
+                "autocomplete": "email",
             }
         ),
         label="Email Address",
@@ -28,7 +51,6 @@ class CustomerLoginForm(forms.Form):
 
     def clean_phone(self):
         phone = self.cleaned_data.get("phone", "").strip()
-        # Remove common separators (spaces, dashes, parens) for consistency
         cleaned = re.sub(r"[\s\-\(\)]", "", phone)
         if not cleaned or len(cleaned) < 7:
             raise forms.ValidationError("Please enter a valid phone number.")
@@ -36,6 +58,10 @@ class CustomerLoginForm(forms.Form):
 
     def clean_email(self):
         return self.cleaned_data.get("email", "").strip().lower()
+
+
+# Backward compatibility alias
+CustomerLoginForm = NewCustomerSignupForm
 
 
 class OTPVerifyForm(forms.Form):

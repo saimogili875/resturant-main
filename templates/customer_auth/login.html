@@ -1,15 +1,15 @@
 {% extends "orders/customer/base.html" %}
 {% load static %}
 
-{% block title %}Customer Sign In — Delivery{% endblock %}
+{% block title %}Customer Authentication — Delivery{% endblock %}
 
 {% block content %}
-<div class="mt-4" style="max-width: 480px; margin-left: auto; margin-right: auto;">
+<div class="mt-4" style="max-width: 520px; margin-left: auto; margin-right: auto;" x-data="{ mode: '{{ active_mode|default:"choice" }}' }">
   <div class="text-center mb-6">
     <p class="label-caps mb-2">Doorstep Delivery</p>
-    <h2 class="headline-md">Sign In or Sign Up</h2>
+    <h2 class="headline-md">Welcome to RDH Cafe Rudra</h2>
     <p class="text-sm text-muted mt-2">
-      Enter your phone number and email address to receive a secure 6-digit verification code.
+      Please select an option below to continue to the delivery menu.
     </p>
   </div>
 
@@ -23,32 +23,105 @@
     </div>
   {% endif %}
 
-  <div class="card card-body glow-hover" style="padding: 2rem; background: var(--rdh-surface-container);">
+  <!-- Option Selection Cards -->
+  <div class="grid grid-2 gap-4 mb-6" x-show="mode === 'choice'">
+    <button type="button" @click="mode = 'login'" class="card card-body text-left glow-hover" style="cursor: pointer; background: var(--rdh-surface-container); border: 2px solid var(--border-subtle); padding: 1.5rem; transition: all 0.2s ease;">
+      <div class="badge badge-primary icon-text mb-3" style="width: fit-content;">
+        {% include "partials/icon.html" with name="user-check" %} Returning
+      </div>
+      <h3 class="text-lg text-bold mb-1" style="color: var(--text-primary);">Existing Customer — Login</h3>
+      <p class="text-xs text-muted mb-3">I already have an account with Cafe Rudra.</p>
+      <span class="text-xs text-bold icon-text" style="color: var(--color-brand-primary);">
+        Login with Email &rarr;
+      </span>
+    </button>
+
+    <button type="button" @click="mode = 'signup'" class="card card-body text-left glow-hover" style="cursor: pointer; background: var(--rdh-surface-container); border: 2px solid var(--border-subtle); padding: 1.5rem; transition: all 0.2s ease;">
+      <div class="badge badge-warning icon-text mb-3" style="width: fit-content;">
+        {% include "partials/icon.html" with name="user-plus" %} New
+      </div>
+      <h3 class="text-lg text-bold mb-1" style="color: var(--text-primary);">New Customer — Create Account</h3>
+      <p class="text-xs text-muted mb-3">Create a new delivery account automatically.</p>
+      <span class="text-xs text-bold icon-text" style="color: var(--color-brand-primary);">
+        Create Account &rarr;
+      </span>
+    </button>
+  </div>
+
+  <!-- Mode Switcher Tabs (when inside a form) -->
+  <div class="flex gap-2 mb-4 justify-center" x-show="mode !== 'choice'" style="margin-bottom: 1.25rem;">
+    <button type="button" @click="mode = 'login'" :class="mode === 'login' ? 'btn-primary' : 'btn-outline'" class="btn btn-sm">
+      Existing Customer Login
+    </button>
+    <button type="button" @click="mode = 'signup'" :class="mode === 'signup' ? 'btn-primary' : 'btn-outline'" class="btn btn-sm">
+      New Customer — Create Account
+    </button>
+  </div>
+
+  <!-- Form 1: Existing Customer Login (Email only) -->
+  <div class="card card-body glow-hover" style="padding: 2rem; background: var(--rdh-surface-container);" x-show="mode === 'login'" x-cloak>
+    <h3 class="text-lg text-bold mb-1">Existing Customer — Login</h3>
+    <p class="text-xs text-muted mb-4">Enter your registered email address to receive a 6-digit verification code.</p>
+
     <form method="post" action="{% url 'customer_auth:login' %}">
       {% csrf_token %}
+      <input type="hidden" name="action" value="login">
 
       <div class="form-group mb-4">
-        <label for="{{ form.phone.id_for_label }}" class="form-label">Phone Number *</label>
-        {{ form.phone }}
-        {% if form.phone.errors %}
-          <div class="text-xs mt-1" style="color: var(--rdh-error);">{{ form.phone.errors.0 }}</div>
+        <label for="{{ login_form.email.id_for_label }}" class="form-label">Email Address *</label>
+        {{ login_form.email }}
+        {% if login_form.email.errors %}
+          <div class="text-xs mt-2 p-2" style="color: var(--rdh-error); background: var(--color-danger-light); border-radius: var(--radius-sm);">
+            {{ login_form.email.errors.0 }}
+            <div class="mt-2">
+              <button type="button" @click="mode = 'signup'" class="text-xs text-bold" style="color: var(--color-brand-primary); text-decoration: underline; background: none; border: none; padding: 0; cursor: pointer;">
+                Click here to Create an Account instead &rarr;
+              </button>
+            </div>
+          </div>
         {% endif %}
       </div>
-
-      <div class="form-group mb-4">
-        <label for="{{ form.email.id_for_label }}" class="form-label">Email Address *</label>
-        {{ form.email }}
-        {% if form.email.errors %}
-          <div class="text-xs mt-1" style="color: var(--rdh-error);">{{ form.email.errors.0 }}</div>
-        {% endif %}
-      </div>
-
-      <p class="text-xs text-muted text-center mb-5">
-        New here? We'll create your account automatically. Already ordered with us? We'll recognize you.
-      </p>
 
       <button type="submit" class="btn btn-primary btn-block btn-lg glow-hover">
-        Continue
+        Send Verification Code
+      </button>
+    </form>
+  </div>
+
+  <!-- Form 2: New Customer Signup (Phone + Email) -->
+  <div class="card card-body glow-hover" style="padding: 2rem; background: var(--rdh-surface-container);" x-show="mode === 'signup'" x-cloak>
+    <h3 class="text-lg text-bold mb-1">New Customer — Create Account</h3>
+    <p class="text-xs text-muted mb-4">Enter your phone number and email address to set up your delivery account.</p>
+
+    <form method="post" action="{% url 'customer_auth:login' %}">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="signup">
+
+      <div class="form-group mb-4">
+        <label for="{{ signup_form.phone.id_for_label }}" class="form-label">Phone Number *</label>
+        {{ signup_form.phone }}
+        {% if signup_form.phone.errors %}
+          <div class="text-xs mt-1" style="color: var(--rdh-error);">{{ signup_form.phone.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <div class="form-group mb-4">
+        <label for="{{ signup_form.email.id_for_label }}" class="form-label">Email Address *</label>
+        {{ signup_form.email }}
+        {% if signup_form.email.errors %}
+          <div class="text-xs mt-2 p-2" style="color: var(--rdh-error); background: var(--color-danger-light); border-radius: var(--radius-sm);">
+            {{ signup_form.email.errors.0 }}
+            <div class="mt-2">
+              <button type="button" @click="mode = 'login'" class="text-xs text-bold" style="color: var(--color-brand-primary); text-decoration: underline; background: none; border: none; padding: 0; cursor: pointer;">
+                Click here to Login with Existing Account &rarr;
+              </button>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block btn-lg glow-hover">
+        Create Account & Send Code
       </button>
     </form>
   </div>
