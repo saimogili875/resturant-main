@@ -9,7 +9,11 @@
     <p class="label-caps mb-2">Step 2 of 2</p>
     <h2 class="headline-md">Enter Verification Code</h2>
     <p class="text-sm text-muted mt-2">
-      We've sent a verification code to <strong style="color: var(--text-primary);">{{ email }}</strong>
+      {% if is_returning_customer %}
+        Welcome back! We've sent a verification code to <strong style="color: var(--text-primary);">{{ email }}</strong>
+      {% else %}
+        Welcome! We've sent a verification code to <strong style="color: var(--text-primary);">{{ email }}</strong> to create your account
+      {% endif %}
       <br>
       <a href="{% url 'customer_auth:login' %}" class="text-xs" style="color: var(--color-brand-primary); text-decoration: underline;">
         Wrong email or phone number?

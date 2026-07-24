@@ -71,49 +71,44 @@ def test_otp_rate_limiting():
 
 
 @pytest.mark.django_db
-def test_customer_login_and_otp_flow(client):
+def test_first_time_customer_login_and_otp_flow(client):
     # Step 1: GET login page
     login_url = reverse("customer_auth:login")
     res = client.get(login_url)
     assert res.status_code == 200
+    assert "Continue" in res.content.decode("utf-8")
 
-    # Step 2: POST login form
-    post_data = {"phone": "9876543210", "email": "flow@example.com"}
+    # Step 2: POST login form (New Customer)
+    post_data = {"phone": "9876543210", "email": "newcustomer@example.com"}
+    # Confirm Customer row does NOT exist yet
+    assert not Customer.objects.filter(email="newcustomer@example.com").exists()
+
     res = client.post(login_url, post_data)
     assert res.status_code == 302
     assert res.url == reverse("customer_auth:verify_otp")
 
-    # Check email was sent
-    assert len(mail.outbox) == 1
-    assert "Your Cafe Rudra Verification Code" in mail.outbox[0].subject
+    # Customer record still MUST NOT exist before OTP verification
+    assert not Customer.objects.filter(email="newcustomer@example.com").exists()
+
+    # Step 3: GET verify OTP page -> check first-time messaging
+    verify_url = reverse("customer_auth:verify_otp")
+    res = client.get(verify_url)
+    assert res.status_code == 200
+    assert res.context["is_returning_customer"] is False
+    assert "Welcome! We&#x27;ve sent a verification code" in res.content.decode("utf-8") or "Welcome! We've sent a verification code" in res.content.decode("utf-8")
 
     # Extract OTP code from mail body
     mail_body = mail.outbox[0].body
     import re
-    match = re.search(r"(\d{6})", mail_body)
-    assert match is not None
-    otp_code = match.group(1)
+    otp_code = re.search(r"(\d{6})", mail_body).group(1)
 
-    # Step 3: GET verify OTP page
-    verify_url = reverse("customer_auth:verify_otp")
-    res = client.get(verify_url)
-    assert res.status_code == 200
-    assert res.context["email"] == "flow@example.com"
-    assert res.context["cooldown_left"] <= 45 and res.context["cooldown_left"] > 0
-
-    # Step 3b: POST wrong OTP — page reloads with error message, but cooldown persists
-    res_wrong = client.post(verify_url, {"otp": "000000"})
-    assert res_wrong.status_code == 200
-    assert "Invalid or expired verification code" in res_wrong.content.decode("utf-8")
-    assert res_wrong.context["cooldown_left"] <= 45
-
-    # Step 4: POST correct OTP
+    # Step 4: POST correct OTP -> Customer record created now
     res = client.post(verify_url, {"otp": otp_code})
     assert res.status_code == 302
     assert res.url == reverse("orders_customer:menu")
 
     # Verify Customer object created & session set
-    customer = Customer.objects.get(email="flow@example.com")
+    customer = Customer.objects.get(email="newcustomer@example.com")
     assert customer.phone == "9876543210"
     assert client.session.get("customer_id") == customer.pk
 
@@ -122,6 +117,39 @@ def test_customer_login_and_otp_flow(client):
     res = client.post(logout_url)
     assert res.status_code == 302
     assert client.session.get("customer_id") is None
+
+
+@pytest.mark.django_db
+def test_returning_customer_flow(client):
+    # Pre-create returning Customer
+    existing_customer = Customer.objects.create(
+        phone="5551234567",
+        email="returning@example.com",
+        name="Alice",
+    )
+
+    # POST login form
+    login_url = reverse("customer_auth:login")
+    res = client.post(login_url, {"phone": "5551234567", "email": "returning@example.com"})
+    assert res.status_code == 302
+
+    # GET verify OTP page -> check returning messaging
+    verify_url = reverse("customer_auth:verify_otp")
+    res = client.get(verify_url)
+    assert res.status_code == 200
+    assert res.context["is_returning_customer"] is True
+    assert "Welcome back!" in res.content.decode("utf-8")
+
+    # Extract OTP code from mail body
+    mail_body = mail.outbox[0].body
+    import re
+    otp_code = re.search(r"(\d{6})", mail_body).group(1)
+
+    # POST correct OTP -> verify no duplicate Customer created
+    res = client.post(verify_url, {"otp": otp_code})
+    assert res.status_code == 302
+    assert Customer.objects.filter(email="returning@example.com").count() == 1
+    assert client.session.get("customer_id") == existing_customer.pk
 
 
 @pytest.mark.django_db

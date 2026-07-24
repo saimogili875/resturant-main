@@ -35,7 +35,7 @@
         {% endif %}
       </div>
 
-      <div class="form-group mb-6">
+      <div class="form-group mb-4">
         <label for="{{ form.email.id_for_label }}" class="form-label">Email Address *</label>
         {{ form.email }}
         {% if form.email.errors %}
@@ -43,8 +43,12 @@
         {% endif %}
       </div>
 
+      <p class="text-xs text-muted text-center mb-5">
+        New here? We'll create your account automatically. Already ordered with us? We'll recognize you.
+      </p>
+
       <button type="submit" class="btn btn-primary btn-block btn-lg glow-hover">
-        Send Verification Code
+        Continue
       </button>
     </form>
   </div>

@@ -46,6 +46,12 @@ def customer_login(request):
                 )
                 return render(request, "customer_auth/login.html", {"form": form})
 
+            # Check if customer already exists (returning customer)
+            is_returning = (
+                Customer.objects.filter(email=email).exists()
+                or Customer.objects.filter(phone=phone).exists()
+            )
+
             # Generate OTP & store hashed in Redis
             otp = services.generate_otp()
             services.store_otp_in_redis(phone, email, otp)
@@ -64,9 +70,14 @@ def customer_login(request):
             request.session["pending_otp_phone"] = phone
             request.session["pending_otp_email"] = email
             request.session["pending_otp_timestamp"] = int(time.time())
+            request.session["pending_otp_is_returning"] = is_returning
             request.session.modified = True
 
-            messages.success(request, f"We've sent a verification code to {email}")
+            if is_returning:
+                messages.success(request, f"We've sent a verification code to {email}")
+            else:
+                messages.success(request, f"We've sent a verification code to {email} to create your account")
+
             return redirect("customer_auth:verify_otp")
     else:
         # Pre-fill phone/email if user had partial session data
@@ -86,6 +97,7 @@ def verify_otp(request):
     phone = request.session.get("pending_otp_phone")
     email = request.session.get("pending_otp_email")
     timestamp = request.session.get("pending_otp_timestamp", 0)
+    is_returning_customer = request.session.get("pending_otp_is_returning", False)
 
     if not phone or not email:
         messages.warning(request, "Please enter your phone number and email to receive a verification code.")
@@ -102,7 +114,7 @@ def verify_otp(request):
             is_valid = services.verify_otp_in_redis(phone, email, otp)
 
             if is_valid:
-                # Fetch or create Customer record
+                # Fetch or create Customer record ONLY after successful OTP verification
                 customer, created = Customer.objects.get_or_create(
                     phone=phone,
                     email=email,
@@ -119,9 +131,14 @@ def verify_otp(request):
                 request.session.pop("pending_otp_phone", None)
                 request.session.pop("pending_otp_email", None)
                 request.session.pop("pending_otp_timestamp", None)
+                request.session.pop("pending_otp_is_returning", None)
                 request.session.modified = True
 
-                messages.success(request, f"Successfully signed in as {customer.email}!")
+                if created:
+                    messages.success(request, "You're all set! Welcome to RDH Cafe Rudra.")
+                else:
+                    name_str = f", {customer.name}" if customer.name else ""
+                    messages.success(request, f"Welcome back{name_str}!")
 
                 # Redirect to checkout if customer has items in delivery cart
                 cart_raw = request.session.get("delv_cart", {})
@@ -141,6 +158,7 @@ def verify_otp(request):
         "phone": phone,
         "email": email,
         "cooldown_left": cooldown_left,
+        "is_returning_customer": is_returning_customer,
     }
     return render(request, "customer_auth/verify_otp.html", context)
 
