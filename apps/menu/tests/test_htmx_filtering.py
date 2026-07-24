@@ -73,6 +73,12 @@ def test_dine_in_menu_htmx_filtering(client, sample_menu):
 
 @pytest.mark.django_db
 def test_delivery_menu_htmx_filtering(client, sample_menu):
+    from apps.customer_auth.models import Customer
+    cust = Customer.objects.create(phone="9876543210", email="htmx@example.com")
+    session = client.session
+    session["customer_id"] = cust.pk
+    session.save()
+
     url = reverse("orders_customer:menu")
     
     # Test normal GET

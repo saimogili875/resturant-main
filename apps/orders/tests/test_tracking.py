@@ -31,12 +31,22 @@ def _sign_token(order):
     return get_cookie_signer(salt=key + _TRACKING_SALT).sign(str(order.pk))
 
 
-@pytest.mark.django_db
-def test_owner_cookie_can_track(client, order):
-    """The signed tracking cookie grants access and shows the live status text."""
-    client.cookies[f"delv_token_{order.pk}"] = _sign_token(order)
+@pytest.fixture
+def customer_client(client, db):
+    from apps.customer_auth.models import Customer
+    cust = Customer.objects.create(phone="9876543210", email="track@example.com")
+    session = client.session
+    session["customer_id"] = cust.pk
+    session.save()
+    return client
 
-    response = client.get(f"/order/{order.pk}/track/")
+
+@pytest.mark.django_db
+def test_owner_cookie_can_track(customer_client, order):
+    """The signed tracking cookie grants access and shows the live status text."""
+    customer_client.cookies[f"delv_token_{order.pk}"] = _sign_token(order)
+
+    response = customer_client.get(f"/order/{order.pk}/track/")
 
     assert response.status_code == 200
     # Live status text reflects the order's current status.
@@ -44,15 +54,15 @@ def test_owner_cookie_can_track(client, order):
 
 
 @pytest.mark.django_db
-def test_non_owner_without_cookie_gets_404(client, order):
+def test_non_owner_without_cookie_gets_404(customer_client, order):
     """A visitor with no tracking cookie cannot reach the order (anti-IDOR)."""
-    response = client.get(f"/order/{order.pk}/track/")
+    response = customer_client.get(f"/order/{order.pk}/track/")
     assert response.status_code == 404
 
 
 @pytest.mark.django_db
-def test_tampered_cookie_gets_404(client, order):
+def test_tampered_cookie_gets_404(customer_client, order):
     """A cookie with a bad signature is rejected, not trusted."""
-    client.cookies[f"delv_token_{order.pk}"] = "not-a-valid-signed-value"
-    response = client.get(f"/order/{order.pk}/track/")
+    customer_client.cookies[f"delv_token_{order.pk}"] = "not-a-valid-signed-value"
+    response = customer_client.get(f"/order/{order.pk}/track/")
     assert response.status_code == 404

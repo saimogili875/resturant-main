@@ -58,32 +58,42 @@ def test_post_message_broadcasts_to_order_room(order):
     assert "maps_url" not in event
 
 
+@pytest.fixture
+def customer_client(client, db):
+    from apps.customer_auth.models import Customer
+    cust = Customer.objects.create(phone="9876543210", email="msg@example.com")
+    session = client.session
+    session["customer_id"] = cust.pk
+    session.save()
+    return client
+
+
 @pytest.mark.django_db
-def test_message_body_is_escaped_on_render(client, order):
+def test_message_body_is_escaped_on_render(customer_client, order):
     """Stored HTML is rendered auto-escaped on the tracking page (XSS defense)."""
     post_message(order, None, "<script>alert(1)</script>")
-    client.cookies[f"delv_token_{order.pk}"] = _sign_token(order)
+    customer_client.cookies[f"delv_token_{order.pk}"] = _sign_token(order)
 
-    body = client.get(f"/order/{order.pk}/track/").content.decode()
+    body = customer_client.get(f"/order/{order.pk}/track/").content.decode()
 
     assert "&lt;script&gt;alert(1)&lt;/script&gt;" in body
     assert "<script>alert(1)</script>" not in body
 
 
 @pytest.mark.django_db
-def test_non_owner_cannot_post_message(client, order):
+def test_non_owner_cannot_post_message(customer_client, order):
     """Without the tracking cookie, posting a message is a 404 (anti-IDOR)."""
-    response = client.post(f"/order/{order.pk}/message/", {"body": "hi"})
+    response = customer_client.post(f"/order/{order.pk}/message/", {"body": "hi"})
     assert response.status_code == 404
     assert order.messages.count() == 0
 
 
 @pytest.mark.django_db
-def test_owner_can_post_message_via_endpoint(client, order):
+def test_owner_can_post_message_via_endpoint(customer_client, order):
     """The cookie-bearing owner can post and gets the rendered bubble back."""
-    client.cookies[f"delv_token_{order.pk}"] = _sign_token(order)
+    customer_client.cookies[f"delv_token_{order.pk}"] = _sign_token(order)
 
-    response = client.post(f"/order/{order.pk}/message/", {"body": "On my way?"})
+    response = customer_client.post(f"/order/{order.pk}/message/", {"body": "On my way?"})
 
     assert response.status_code == 200
     assert order.messages.count() == 1

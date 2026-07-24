@@ -76,14 +76,32 @@ def verify_otp_in_redis(phone: str, email: str, input_otp: str) -> bool:
 
 
 import logging
+import threading
 
 logger = logging.getLogger(__name__)
 
 
-def send_otp_email(email: str, otp: str) -> bool:
-    """Send OTP code to customer's email via Gmail SMTP.
+def _send_email_async(subject: str, message: str, from_email: str, recipient_list: list[str]):
+    """Background worker function for asynchronous email dispatch."""
+    try:
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=from_email,
+            recipient_list=recipient_list,
+            fail_silently=False,
+        )
+        logger.info(f"Successfully sent OTP email to {recipient_list[0]}")
+    except Exception as exc:
+        logger.exception(
+            f"Failed to send OTP email to {recipient_list[0]} (host={settings.EMAIL_HOST}, user={settings.EMAIL_HOST_USER}): {exc}"
+        )
 
-    Never logs the plaintext OTP.
+
+def send_otp_email(email: str, otp: str) -> bool:
+    """Queue OTP email delivery to customer via background thread.
+
+    Never logs the plaintext OTP. Returns True immediately once queued.
     """
     subject = "Your Cafe Rudra Verification Code"
     message = (
@@ -102,22 +120,15 @@ def send_otp_email(email: str, otp: str) -> bool:
         )
         return False
 
+    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None) or email_user
     logger.info(
-        f"Sending OTP email to {email} using host={settings.EMAIL_HOST}:{settings.EMAIL_PORT}, user={email_user}"
+        f"Queueing OTP email to {email} in background thread (host={settings.EMAIL_HOST}:{settings.EMAIL_PORT}, user={email_user})"
     )
 
-    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None) or email_user
-
-    try:
-        send_mail(
-            subject=subject,
-            message=message,
-            from_email=from_email,
-            recipient_list=[email],
-            fail_silently=False,
-        )
-        logger.info(f"Successfully sent OTP email to {email}")
-        return True
-    except Exception as exc:
-        logger.exception(f"Failed to send OTP email to {email} (host={settings.EMAIL_HOST}, user={settings.EMAIL_HOST_USER}): {exc}")
-        return False
+    thread = threading.Thread(
+        target=_send_email_async,
+        args=(subject, message, from_email, [email]),
+        daemon=True,
+    )
+    thread.start()
+    return True

@@ -18,4 +18,4 @@ def test_wrong_password_shows_error():
     )
     # Should re-render the form, not redirect — status 200.
     assert resp.status_code == 200
-    assert b"username or password was incorrect" in resp.content
+    assert b"Incorrect username or password" in resp.content
