@@ -4,7 +4,7 @@
 {% block title %}Customer Authentication — Delivery{% endblock %}
 
 {% block content %}
-<div class="mt-4" style="max-width: 520px; margin-left: auto; margin-right: auto;" x-data="{ mode: '{{ active_mode|default:"choice" }}' }">
+<div class="mt-4" style="max-width: 640px; margin-left: auto; margin-right: auto;" x-data="{ mode: '{{ active_mode|default:"choice" }}' }">
   <div class="text-center mb-6">
     <p class="label-caps mb-2">Doorstep Delivery</p>
     <h2 class="headline-md">Welcome to RDH Cafe Rudra</h2>
@@ -23,43 +23,33 @@
     </div>
   {% endif %}
 
-  <!-- Option Selection Cards -->
-  <div class="grid grid-2 gap-4 mb-6" x-show="mode === 'choice'">
-    <button type="button" @click="mode = 'login'" class="card card-body text-left glow-hover" style="cursor: pointer; background: var(--rdh-surface-container); border: 2px solid var(--border-subtle); padding: 1.5rem; transition: all 0.2s ease;">
+  <!-- Option Selection Cards (Side-by-Side Columns) -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem;" x-show="mode === 'choice'">
+    <button type="button" @click="mode = 'login'" class="card card-body text-left glow-hover" style="cursor: pointer; background: var(--rdh-surface-container); border: 2px solid var(--border-subtle); padding: 1.5rem; transition: all 0.2s ease; width: 100%;">
       <div class="badge badge-primary icon-text mb-3" style="width: fit-content;">
-        {% include "partials/icon.html" with name="user-check" %} Returning
+        {% include "partials/icon.html" with name="user-check" %} RETURNING
       </div>
       <h3 class="text-lg text-bold mb-1" style="color: var(--text-primary);">Existing Customer — Login</h3>
-      <p class="text-xs text-muted mb-3">I already have an account with Cafe Rudra.</p>
+      <p class="text-xs text-muted mb-4">I already have an account with Cafe Rudra.</p>
       <span class="text-xs text-bold icon-text" style="color: var(--color-brand-primary);">
         Login with Email &rarr;
       </span>
     </button>
 
-    <button type="button" @click="mode = 'signup'" class="card card-body text-left glow-hover" style="cursor: pointer; background: var(--rdh-surface-container); border: 2px solid var(--border-subtle); padding: 1.5rem; transition: all 0.2s ease;">
+    <button type="button" @click="mode = 'signup'" class="card card-body text-left glow-hover" style="cursor: pointer; background: var(--rdh-surface-container); border: 2px solid var(--border-subtle); padding: 1.5rem; transition: all 0.2s ease; width: 100%;">
       <div class="badge badge-warning icon-text mb-3" style="width: fit-content;">
-        {% include "partials/icon.html" with name="user-plus" %} New
+        {% include "partials/icon.html" with name="user-plus" %} NEW
       </div>
       <h3 class="text-lg text-bold mb-1" style="color: var(--text-primary);">New Customer — Create Account</h3>
-      <p class="text-xs text-muted mb-3">Create a new delivery account automatically.</p>
+      <p class="text-xs text-muted mb-4">Create a new delivery account automatically.</p>
       <span class="text-xs text-bold icon-text" style="color: var(--color-brand-primary);">
         Create Account &rarr;
       </span>
     </button>
   </div>
 
-  <!-- Mode Switcher Tabs (when inside a form) -->
-  <div class="flex gap-2 mb-4 justify-center" x-show="mode !== 'choice'" style="margin-bottom: 1.25rem;">
-    <button type="button" @click="mode = 'login'" :class="mode === 'login' ? 'btn-primary' : 'btn-outline'" class="btn btn-sm">
-      Existing Customer Login
-    </button>
-    <button type="button" @click="mode = 'signup'" :class="mode === 'signup' ? 'btn-primary' : 'btn-outline'" class="btn btn-sm">
-      New Customer — Create Account
-    </button>
-  </div>
-
   <!-- Form 1: Existing Customer Login (Email only) -->
-  <div class="card card-body glow-hover" style="padding: 2rem; background: var(--rdh-surface-container);" x-show="mode === 'login'" x-cloak>
+  <div class="card card-body glow-hover" style="padding: 2rem; background: var(--rdh-surface-container); max-width: 480px; margin: 0 auto;" x-show="mode === 'login'" x-cloak>
     <h3 class="text-lg text-bold mb-1">Existing Customer — Login</h3>
     <p class="text-xs text-muted mb-4">Enter your registered email address to receive a 6-digit verification code.</p>
 
@@ -67,7 +57,7 @@
       {% csrf_token %}
       <input type="hidden" name="action" value="login">
 
-      <div class="form-group mb-4">
+      <div class="form-group mb-5">
         <label for="{{ login_form.email.id_for_label }}" class="form-label">Email Address *</label>
         {{ login_form.email }}
         {% if login_form.email.errors %}
@@ -86,10 +76,20 @@
         Send Verification Code
       </button>
     </form>
+
+    <div class="text-center mt-4 pt-3" style="border-top: 1px solid var(--border-subtle);">
+      <button type="button" @click="mode = 'signup'" class="text-xs text-bold" style="color: var(--color-brand-primary); background: none; border: none; padding: 0; cursor: pointer;">
+        New here? Create an account instead &rarr;
+      </button>
+      <br>
+      <button type="button" @click="mode = 'choice'" class="text-xs text-muted mt-2" style="background: none; border: none; padding: 0; cursor: pointer; text-decoration: underline;">
+        &larr; Change option
+      </button>
+    </div>
   </div>
 
   <!-- Form 2: New Customer Signup (Phone + Email) -->
-  <div class="card card-body glow-hover" style="padding: 2rem; background: var(--rdh-surface-container);" x-show="mode === 'signup'" x-cloak>
+  <div class="card card-body glow-hover" style="padding: 2rem; background: var(--rdh-surface-container); max-width: 480px; margin: 0 auto;" x-show="mode === 'signup'" x-cloak>
     <h3 class="text-lg text-bold mb-1">New Customer — Create Account</h3>
     <p class="text-xs text-muted mb-4">Enter your phone number and email address to set up your delivery account.</p>
 
@@ -105,7 +105,7 @@
         {% endif %}
       </div>
 
-      <div class="form-group mb-4">
+      <div class="form-group mb-5">
         <label for="{{ signup_form.email.id_for_label }}" class="form-label">Email Address *</label>
         {{ signup_form.email }}
         {% if signup_form.email.errors %}
@@ -124,6 +124,16 @@
         Create Account & Send Code
       </button>
     </form>
+
+    <div class="text-center mt-4 pt-3" style="border-top: 1px solid var(--border-subtle);">
+      <button type="button" @click="mode = 'login'" class="text-xs text-bold" style="color: var(--color-brand-primary); background: none; border: none; padding: 0; cursor: pointer;">
+        Already have an account? Login instead &rarr;
+      </button>
+      <br>
+      <button type="button" @click="mode = 'choice'" class="text-xs text-muted mt-2" style="background: none; border: none; padding: 0; cursor: pointer; text-decoration: underline;">
+        &larr; Change option
+      </button>
+    </div>
   </div>
 </div>
 {% endblock %}
