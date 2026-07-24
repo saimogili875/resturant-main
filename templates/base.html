@@ -36,9 +36,12 @@
       <h1 class="app-header__title">RDH · Cafe Rudra</h1>
       <span class="app-header__subtitle">{% block header_subtitle %}Named After the Storm{% endblock %}</span>
     </div>
-    {% block header_actions %}
-      <!-- Badges or toggles go here -->
-    {% endblock %}
+    <div class="flex items-center gap-2">
+      {% include "partials/share_modal.html" %}
+      {% block header_actions %}
+        <!-- Badges or toggles go here -->
+      {% endblock %}
+    </div>
   </header>
 
   <main class="app-main">

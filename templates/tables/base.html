@@ -34,11 +34,14 @@
       <h1 class="app-header__title">RDH · Cafe Rudra</h1>
       <span class="app-header__subtitle">Dine-In</span>
     </div>
-    {% if table %}
-    <div class="table-badge">
-      Table {{ table.number }}
+    <div class="flex items-center gap-2">
+      {% include "partials/share_modal.html" %}
+      {% if table %}
+      <div class="table-badge">
+        Table {{ table.number }}
+      </div>
+      {% endif %}
     </div>
-    {% endif %}
   </header>
 
   <main class="container" id="main-content">

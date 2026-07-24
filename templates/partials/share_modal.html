@@ -1,0 +1,86 @@
+<!-- Share Website Component (Alpine.js) -->
+<div x-data="{
+  open: false,
+  copied: false,
+  title: 'Cafe Rudra — Named After the Storm',
+  text: 'Golden string lights, a black double-decker frame, and the calm after the storm. Come sit, sip, and stay a while.',
+  url: window.location.origin + window.location.pathname,
+  share() {
+    if (navigator.share) {
+      navigator.share({
+        title: this.title,
+        text: this.text,
+        url: this.url
+      }).catch(() => { this.open = true; });
+    } else {
+      this.open = true;
+    }
+  },
+  copyLink() {
+    navigator.clipboard.writeText(this.url).then(() => {
+      this.copied = true;
+      setTimeout(() => { this.copied = false; }, 2500);
+    });
+  }
+}">
+  <!-- Share Button -->
+  <button type="button" @click="share()" class="btn btn-xs btn-outline inline-flex items-center gap-1.5 glow-hover" title="Share Website" style="display: inline-flex; align-items: center; gap: 0.35rem; border-color: var(--color-brand-primary); color: var(--color-brand-primary); padding: 0.35rem 0.65rem; border-radius: var(--radius-sm);">
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="18" cy="5" r="3"></circle>
+      <circle cx="6" cy="12" r="3"></circle>
+      <circle cx="18" cy="19" r="3"></circle>
+      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+    </svg>
+    <span>Share</span>
+  </button>
+
+  <!-- Share Modal Dialog -->
+  <template x-teleport="body">
+    <div x-show="open" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4" style="position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 1rem; background: rgba(0,0,0,0.75); backdrop-filter: blur(8px);">
+      <div @click.outside="open = false" class="card card-body w-full max-w-sm" style="background: var(--rdh-surface-container); border: 1px solid rgba(255,255,255,0.15); border-radius: var(--radius-lg); padding: 1.5rem; color: #fff; box-shadow: 0 20px 40px rgba(0,0,0,0.6);">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: var(--color-brand-primary);">Share Cafe Rudra</h3>
+          <button type="button" @click="open = false" style="background: none; border: none; color: #aaa; font-size: 1.25rem; cursor: pointer; padding: 0.25rem;">&times;</button>
+        </div>
+
+        <p style="font-size: 0.8rem; color: #aaa; margin-bottom: 1.25rem; line-height: 1.4;">
+          Golden string lights, a black double-decker frame, and the calm after the storm. Share with friends!
+        </p>
+
+        <!-- Social Share Buttons Grid -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.25rem;">
+          <!-- WhatsApp -->
+          <a :href="'https://api.whatsapp.com/send?text=' + encodeURIComponent(title + ' - ' + text + ' ' + url)" target="_blank" class="btn btn-sm" style="background: #25D366; color: #fff; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.6rem; border-radius: var(--radius-md); font-weight: 600; font-size: 0.85rem;">
+            📱 WhatsApp
+          </a>
+
+          <!-- Twitter / X -->
+          <a :href="'https://twitter.com/intent/tweet?text=' + encodeURIComponent(title + ' - ' + text) + '&url=' + encodeURIComponent(url)" target="_blank" class="btn btn-sm" style="background: #1DA1F2; color: #fff; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.6rem; border-radius: var(--radius-md); font-weight: 600; font-size: 0.85rem;">
+            🐦 Twitter / X
+          </a>
+
+          <!-- Facebook -->
+          <a :href="'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url)" target="_blank" class="btn btn-sm" style="background: #1877F2; color: #fff; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.6rem; border-radius: var(--radius-md); font-weight: 600; font-size: 0.85rem;">
+            📘 Facebook
+          </a>
+
+          <!-- Telegram -->
+          <a :href="'https://t.me/share/url?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(title + ' - ' + text)" target="_blank" class="btn btn-sm" style="background: #229ED9; color: #fff; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.6rem; border-radius: var(--radius-md); font-weight: 600; font-size: 0.85rem;">
+            ✈️ Telegram
+          </a>
+        </div>
+
+        <!-- Copy Direct Link Box -->
+        <div style="background: rgba(255,255,255,0.05); padding: 0.5rem 0.75rem; border-radius: var(--radius-md); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: space-between;">
+          <input type="text" :value="url" readonly style="background: none; border: none; color: #ddd; font-size: 0.75rem; width: 70%; outline: none;">
+          <button type="button" @click="copyLink()" class="btn btn-xs btn-primary" style="padding: 0.35rem 0.6rem; font-size: 0.75rem; border-radius: var(--radius-sm);">
+            <span x-text="copied ? 'Copied!' : 'Copy'"></span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </template>
+</div>

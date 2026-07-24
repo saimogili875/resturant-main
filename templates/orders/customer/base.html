@@ -29,6 +29,7 @@
       <span class="app-header__subtitle">Fast Doorstep Delivery</span>
     </div>
     <div class="flex items-center gap-2">
+      {% include "partials/share_modal.html" %}
       {% if delivery_customer %}
         <span class="text-xs text-muted" title="{{ delivery_customer.email }}">
           {{ delivery_customer.email|truncatechars:18 }}
