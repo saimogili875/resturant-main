@@ -93,11 +93,20 @@ def send_otp_email(email: str, otp: str) -> bool:
         f"Thank you,\n"
         f"RDH · Cafe Rudra"
     )
-    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None) or getattr(settings, "EMAIL_HOST_USER", "")
+    email_user = getattr(settings, "EMAIL_HOST_USER", "")
+    email_pass = getattr(settings, "EMAIL_HOST_PASSWORD", "")
+    if not email_user or not email_pass:
+        logger.error(
+            f"CANNOT SEND OTP EMAIL: EMAIL_HOST_USER or EMAIL_HOST_PASSWORD environment variable is blank in settings! "
+            f"(EMAIL_HOST_USER='{email_user}', EMAIL_HOST_PASSWORD={'[SET]' if email_pass else '[BLANK]'})"
+        )
+        return False
 
     logger.info(
-        f"Sending OTP email to {email} using host={settings.EMAIL_HOST}:{settings.EMAIL_PORT}, user={settings.EMAIL_HOST_USER}"
+        f"Sending OTP email to {email} using host={settings.EMAIL_HOST}:{settings.EMAIL_PORT}, user={email_user}"
     )
+
+    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None) or email_user
 
     try:
         send_mail(
