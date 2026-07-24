@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 
 export default function CafeRudraAuth() {
-  const [activeTab, setActiveTab] = useState('signin'); // 'signin' | 'signup'
+  const [activeTab, setActiveTab] = useState('login'); // 'login' | 'register'
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -24,7 +24,7 @@ export default function CafeRudraAuth() {
   const [timer, setTimer] = useState(45);
   const [canResend, setCanResend] = useState(false);
 
-  // Countdown timer for OTP resend
+  // Resend cooldown timer
   useEffect(() => {
     let interval = null;
     if (step === 'otp' && timer > 0) {
@@ -35,7 +35,7 @@ export default function CafeRudraAuth() {
     return () => clearInterval(interval);
   }, [step, timer]);
 
-  // Tab Switching Handler
+  // Tab switcher
   const handleTabSwitch = (newTab) => {
     setActiveTab(newTab);
     setError(null);
@@ -43,68 +43,59 @@ export default function CafeRudraAuth() {
     setStep('credentials');
   };
 
-  // Credentials Submission Handler
+  // Submit Handler
   const handleSubmit = (e) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
 
-    // Validation Rules
     if (!email || !email.includes('@')) {
       setError({ message: 'Please enter a valid email address.' });
       return;
     }
 
-    if (activeTab === 'signup' && (!phone || phone.replace(/\D/g, '').length < 10)) {
+    if (activeTab === 'register' && (!phone || phone.replace(/\D/g, '').length < 10)) {
       setError({ message: 'Please enter a valid 10-digit phone number.' });
       return;
     }
 
     setIsLoading(true);
 
-    // Simulated API Call
     setTimeout(() => {
       setIsLoading(false);
+      const lowerEmail = email.toLowerCase().trim();
 
-      // Smart Error Handling Simulation
-      const lowerEmail = email.toLowerCase().strip ? email.toLowerCase().strip() : email.toLowerCase();
-      
-      // Simulate "Existing email entered in Create Account mode"
-      if (activeTab === 'signup' && (lowerEmail === 'user@caferudra.com' || lowerEmail === 'existing@example.com')) {
+      if (activeTab === 'register' && (lowerEmail === 'user@caferudra.com' || lowerEmail === 'existing@example.com')) {
         setError({
           message: 'An account with this email already exists.',
           actionText: 'Sign In Instead',
-          targetTab: 'signin',
+          targetTab: 'login',
         });
         return;
       }
 
-      // Simulate "Unregistered email entered in Sign In mode"
-      if (activeTab === 'signin' && (lowerEmail === 'new@example.com' || lowerEmail === 'unregistered@caferudra.com')) {
+      if (activeTab === 'login' && (lowerEmail === 'new@example.com' || lowerEmail === 'unregistered@caferudra.com')) {
         setError({
-          message: "No registered account found with this email.",
-          actionText: "Create an Account",
-          targetTab: "signup",
+          message: 'No registered account found with this email.',
+          actionText: 'Create an Account',
+          targetTab: 'register',
         });
         return;
       }
 
-      // Success -> Proceed to OTP Step
       setStep('otp');
       setTimer(45);
       setCanResend(false);
       setSuccess(`Verification code sent to ${email}`);
-    }, 800);
+    }, 700);
   };
 
-  // OTP Handling
   const handleOtpChange = (index, value) => {
     if (!/^\d*$/.test(value)) return;
     const newOtp = [...otp];
     newOtp[index] = value.slice(-1);
     setOtp(newOtp);
 
-    // Auto-focus next input
     if (value && index < 5) {
       const nextInput = document.getElementById(`otp-input-${index + 1}`);
       if (nextInput) nextInput.focus();
@@ -134,7 +125,7 @@ export default function CafeRudraAuth() {
       } else {
         setError({ message: 'Invalid verification code. Try 123456.' });
       }
-    }, 900);
+    }, 800);
   };
 
   const handleResendOtp = () => {
@@ -145,22 +136,23 @@ export default function CafeRudraAuth() {
       setTimer(45);
       setCanResend(false);
       setSuccess('A fresh 6-digit code has been dispatched to your email.');
-    }, 600);
+    }, 500);
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#0E0E10] text-zinc-100 flex items-center justify-center p-4 relative overflow-hidden font-sans selection:bg-amber-400 selection:text-black">
+    /* Full-Screen Perfectly Centered Flex Wrapper */
+    <div className="min-h-screen w-full bg-[#0E0E10] text-zinc-100 flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans selection:bg-amber-400 selection:text-black">
       
-      {/* Background Decorative Ambient Glows */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-amber-500/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-10 right-10 w-[300px] h-[300px] bg-amber-400/5 rounded-full blur-[100px] pointer-events-none" />
+      {/* Background Decorative Glow Effects */}
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[520px] bg-amber-500/10 rounded-full blur-[130px] pointer-events-none" />
+      <div className="absolute bottom-12 right-12 w-[320px] h-[320px] bg-amber-400/5 rounded-full blur-[110px] pointer-events-none" />
 
-      {/* Main Glassmorphism Floating Modal Card */}
-      <div className="w-full max-w-md bg-zinc-900/65 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative z-10 transition-all duration-300 hover:border-white/15 hover:shadow-[0_25px_60px_rgba(251,191,36,0.06)]">
+      {/* Single Unified Floating Modal Card (max-w-md w-full) */}
+      <div className="max-w-md w-full bg-zinc-900/70 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 shadow-[0_25px_60px_rgba(0,0,0,0.6)] relative z-10 transition-all duration-300">
         
         {/* Brand Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500/20 to-amber-400/10 border border-amber-500/30 mb-3 shadow-[0_0_20px_rgba(251,191,36,0.15)] group transition-transform hover:scale-105">
+        <div className="text-center mb-7">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500/20 to-amber-400/10 border border-amber-500/30 mb-3 shadow-[0_0_20px_rgba(251,191,36,0.15)] group hover:scale-105 transition-transform">
             <Utensils className="w-7 h-7 text-amber-400 group-hover:rotate-12 transition-transform duration-300" />
           </div>
           <div className="flex items-center justify-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-amber-400/90 mb-1">
@@ -168,44 +160,45 @@ export default function CafeRudraAuth() {
             <span>Cafe Rudra</span>
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-white">
-            {step === 'otp' ? 'Security Verification' : activeTab === 'signin' ? 'Welcome Back' : 'Create an Account'}
+            {step === 'otp'
+              ? 'Security Verification'
+              : activeTab === 'login'
+              ? 'Returning Customer — Login'
+              : 'New Customer — Create Account'}
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
             {step === 'otp'
-              ? `Enter the code sent to ${email}`
-              : activeTab === 'signin'
-              ? 'Enter your email to receive a 6-digit verification code'
-              : 'Sign up with your details for fast doorstep delivery'}
+              ? `Enter the verification code sent to ${email}`
+              : activeTab === 'login'
+              ? 'Welcome Back! Enter your registered email address to receive a verification code.'
+              : 'Enter your phone number and email address to set up your delivery account.'}
           </p>
         </div>
 
-        {/* Sleek Segmented Tab Switcher (Credentials Mode Only) */}
+        {/* Top Tab Toggle Buttons (Credentials Mode Only) */}
         {step === 'credentials' && (
-          <div className="bg-zinc-950/70 p-1.5 rounded-2xl border border-white/5 mb-6 relative flex items-center">
-            {/* Sliding Active Tab Background */}
-            <div
-              className={`absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] bg-amber-400 rounded-xl transition-all duration-300 ease-out shadow-[0_2px_12px_rgba(251,191,36,0.25)] ${
-                activeTab === 'signup' ? 'translate-x-[calc(100%+6px)]' : 'translate-x-0'
-              }`}
-            />
-            
+          <div className="bg-zinc-950/80 p-1.5 rounded-2xl border border-white/10 mb-6 flex gap-1.5 items-center">
             <button
               type="button"
-              onClick={() => handleTabSwitch('signin')}
-              className={`flex-1 py-2.5 text-xs font-bold rounded-xl relative z-10 transition-colors duration-200 text-center ${
-                activeTab === 'signin' ? 'text-zinc-950' : 'text-zinc-400 hover:text-zinc-200'
+              onClick={() => handleTabSwitch('login')}
+              className={`flex-1 py-2.5 text-xs font-semibold rounded-xl transition-all duration-200 text-center ${
+                activeTab === 'login'
+                  ? 'bg-amber-400 text-black font-semibold shadow-md shadow-amber-400/20'
+                  : 'bg-transparent text-gray-400 hover:text-white'
               }`}
             >
-              Sign In
+              Returning Customer
             </button>
             <button
               type="button"
-              onClick={() => handleTabSwitch('signup')}
-              className={`flex-1 py-2.5 text-xs font-bold rounded-xl relative z-10 transition-colors duration-200 text-center ${
-                activeTab === 'signup' ? 'text-zinc-950' : 'text-zinc-400 hover:text-zinc-200'
+              onClick={() => handleTabSwitch('register')}
+              className={`flex-1 py-2.5 text-xs font-semibold rounded-xl transition-all duration-200 text-center ${
+                activeTab === 'register'
+                  ? 'bg-amber-400 text-black font-semibold shadow-md shadow-amber-400/20'
+                  : 'bg-transparent text-gray-400 hover:text-white'
               }`}
             >
-              Create Account
+              New Customer
             </button>
           </div>
         )}
@@ -218,14 +211,13 @@ export default function CafeRudraAuth() {
           </div>
         )}
 
-        {/* Smart Inline Error Banner with Action Button */}
+        {/* Inline Error Alert Box with Action Button */}
         {error && (
           <div className="mb-5 p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-xl flex flex-col gap-2 text-amber-300 text-xs animate-in fade-in slide-in-from-top-1 duration-200">
             <div className="flex items-start gap-2.5">
               <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
               <div className="flex-1 font-medium">{error.message}</div>
             </div>
-            
             {error.actionText && error.targetTab && (
               <button
                 type="button"
@@ -239,12 +231,12 @@ export default function CafeRudraAuth() {
           </div>
         )}
 
-        {/* Form Body */}
+        {/* Active Form Body */}
         {step === 'credentials' ? (
           <form onSubmit={handleSubmit} className="space-y-4">
             
-            {/* Phone Number Field (Create Account mode only) */}
-            {activeTab === 'signup' && (
+            {/* Phone Input (Register Mode Only) */}
+            {activeTab === 'register' && (
               <div className="space-y-1.5 animate-in fade-in duration-200">
                 <label className="text-xs font-semibold text-zinc-300">
                   Phone Number <span className="text-amber-400">*</span>
@@ -265,7 +257,7 @@ export default function CafeRudraAuth() {
               </div>
             )}
 
-            {/* Email Address Field */}
+            {/* Email Address Input */}
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-zinc-300">
                 Email Address <span className="text-amber-400">*</span>
@@ -285,7 +277,7 @@ export default function CafeRudraAuth() {
               </div>
             </div>
 
-            {/* Primary Action Button */}
+            {/* CTA Action Button */}
             <button
               type="submit"
               disabled={isLoading}
@@ -295,29 +287,29 @@ export default function CafeRudraAuth() {
                 <RefreshCw className="w-4 h-4 animate-spin text-zinc-950" />
               ) : (
                 <>
-                  <span>{activeTab === 'signin' ? 'Send Verification Code' : 'Continue to Menu'}</span>
+                  <span>{activeTab === 'login' ? 'Send Verification Code' : 'Create Account & Send Code'}</span>
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </>
               )}
             </button>
 
-            {/* Switch Subtext Link */}
+            {/* Bottom Toggle Link */}
             <div className="pt-3 text-center">
-              {activeTab === 'signin' ? (
+              {activeTab === 'login' ? (
                 <button
                   type="button"
-                  onClick={() => handleTabSwitch('signup')}
+                  onClick={() => handleTabSwitch('register')}
                   className="text-xs text-zinc-400 hover:text-amber-400 transition-colors"
                 >
-                  New here? <span className="font-semibold text-amber-400 underline underline-offset-2">Create an account</span>
+                  New customer? <span className="font-semibold text-amber-400 underline underline-offset-2">Create an account</span>
                 </button>
               ) : (
                 <button
                   type="button"
-                  onClick={() => handleTabSwitch('signin')}
+                  onClick={() => handleTabSwitch('login')}
                   className="text-xs text-zinc-400 hover:text-amber-400 transition-colors"
                 >
-                  Already have an account? <span className="font-semibold text-amber-400 underline underline-offset-2">Sign in</span>
+                  Already have an account? <span className="font-semibold text-amber-400 underline underline-offset-2">Login</span>
                 </button>
               )}
             </div>
@@ -357,7 +349,6 @@ export default function CafeRudraAuth() {
               ))}
             </div>
 
-            {/* Verify Button */}
             <button
               type="submit"
               disabled={isLoading}
@@ -370,7 +361,6 @@ export default function CafeRudraAuth() {
               )}
             </button>
 
-            {/* Resend Timer Subtext */}
             <div className="text-center">
               {canResend ? (
                 <button
