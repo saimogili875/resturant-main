@@ -29,9 +29,9 @@ def test_admin_can_ready_to_paid():
     assert can_transition("ADMIN", "READY", "PAID") is True
 
 
-def test_admin_can_collect_to_paid():
-    """ADMIN may clear a collected delivery as paid."""
-    assert can_transition("ADMIN", "COLLECT", "PAID") is True
+def test_admin_cannot_collect_to_paid():
+    """ADMIN may not clear a collected delivery — assigned AGENT owns payment collection."""
+    assert can_transition("ADMIN", "COLLECT", "PAID") is False
 
 
 # ---------------------------------------------------------------------------
@@ -48,6 +48,11 @@ def test_agent_can_arrived_to_collect():
     assert can_transition("AGENT", "ARRIVED", "COLLECT") is True
 
 
+def test_agent_can_collect_to_paid():
+    """AGENT may mark a collected delivery as paid."""
+    assert can_transition("AGENT", "COLLECT", "PAID") is True
+
+
 # ---------------------------------------------------------------------------
 # Disallowed transitions
 # ---------------------------------------------------------------------------
@@ -55,11 +60,6 @@ def test_agent_can_arrived_to_collect():
 def test_agent_cannot_placed_to_approved():
     """AGENT has no authority to approve orders."""
     assert can_transition("AGENT", "PLACED", "APPROVED") is False
-
-
-def test_agent_cannot_collect_to_paid():
-    """AGENT cannot clear payment — only ADMIN can."""
-    assert can_transition("AGENT", "COLLECT", "PAID") is False
 
 
 def test_unknown_role_cannot_transition():

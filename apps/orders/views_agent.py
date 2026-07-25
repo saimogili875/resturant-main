@@ -22,10 +22,11 @@ def _next_actions(order: Order) -> list[dict]:
     {"value", "label"} dicts so the template can render human-readable
     buttons without embedding workflow knowledge.
     """
-    return [
-        {"value": target, "label": OrderStatus(target).label}
-        for target in state.allowed_targets("AGENT", order.status)
-    ]
+    targets = []
+    for target in state.allowed_targets("AGENT", order.status):
+        label = "Paid" if target == OrderStatus.PAID else OrderStatus(target).label
+        targets.append({"value": target, "label": label})
+    return targets
 
 
 def _is_available(user) -> bool:

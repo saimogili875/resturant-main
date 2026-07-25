@@ -109,30 +109,97 @@
 
     var scheme = window.location.protocol === "https:" ? "wss" : "ws";
     var url = scheme + "://" + window.location.host + "/ws/orders/" + orderId + "/";
-    var socket;
+    var socket = null;
+    var reconnectTimer = null;
+    var attempts = 0;
+    var maxAttempts = 15;
+    var initialDelay = 2000;
+    var maxDelay = 30000;
+    var currentDelay = initialDelay;
+    var wasDisconnected = false;
 
-    try {
-      socket = new WebSocket(url);
-    } catch (err) {
-      return; // Socket unavailable; server-rendered status stands.
+    function connect() {
+      try {
+        socket = new WebSocket(url);
+      } catch (err) {
+        scheduleReconnect();
+        return;
+      }
+
+      socket.onopen = function() {
+        setConnected(true);
+        if (wasDisconnected) {
+          syncStatusOnReconnect();
+        }
+        attempts = 0;
+        currentDelay = initialDelay;
+        wasDisconnected = false;
+      };
+
+      socket.onclose = function() {
+        setConnected(false);
+        wasDisconnected = true;
+        scheduleReconnect();
+      };
+
+      socket.onerror = function() {
+        // socket.onclose fires after onerror
+      };
+
+      socket.onmessage = function(event) {
+        var data = JSON.parse(event.data);
+        if (data.type === "order.status" && data.status) {
+          updateStatusDisplay(data.status);
+        } else if (data.type === "order.message") {
+          appendMessage(data);
+        }
+      };
     }
 
-    socket.onopen = function() {
-      setConnected(true);
-    };
-
-    socket.onclose = function() {
-      setConnected(false);
-    };
-
-    socket.onmessage = function(event) {
-      var data = JSON.parse(event.data);
-      if (data.type === "order.status" && data.status) {
-        updateStatusDisplay(data.status);
-      } else if (data.type === "order.message") {
-        appendMessage(data);
+    function scheduleReconnect() {
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
       }
-    };
+
+      if (attempts >= maxAttempts) {
+        console.log("Max reconnect attempts reached for order tracker.");
+        if (offlineWarning) {
+          offlineWarning.innerHTML = 'Live updates disconnected. <a href="javascript:location.reload()" style="color: inherit; text-decoration: underline; font-weight: bold;">Refresh page</a> for current status.';
+          offlineWarning.style.display = "block";
+        }
+        return;
+      }
+
+      attempts++;
+      var wait = currentDelay;
+      currentDelay = Math.min(currentDelay * 2, maxDelay);
+
+      reconnectTimer = setTimeout(function() {
+        connect();
+      }, wait);
+    }
+
+    function syncStatusOnReconnect() {
+      fetch(window.location.href, {
+        headers: { "X-Requested-With": "XMLHttpRequest" }
+      })
+        .then(function(res) { return res.text(); })
+        .then(function(html) {
+          var parser = new DOMParser();
+          var doc = parser.parseFromString(html, "text/html");
+          var newContainer = doc.getElementById("order-tracker-container");
+          if (newContainer) {
+            var latestStatus = newContainer.getAttribute("data-initial-status");
+            if (latestStatus && latestStatus !== status) {
+              updateStatusDisplay(latestStatus);
+            }
+          }
+        })
+        .catch(function() { /* best-effort sync */ });
+    }
+
+    connect();
 
     function appendMessage(data) {
       var thread = document.getElementById("message-thread");

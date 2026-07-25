@@ -261,6 +261,9 @@ def transition(order: Order, to_status: str, actor) -> Order:
             f"from '{frm}' to '{to_status}'."
         )
 
+    if actor.role == "AGENT" and order.agent_id != actor.pk:
+        raise PermissionDenied("Agent is not assigned to this order.")
+
     DELIVERY_ONLY_STATUSES = (OrderStatus.DISPATCHED, OrderStatus.ARRIVED, OrderStatus.COLLECTED)
     if order.order_type == "DINE" and to_status in DELIVERY_ONLY_STATUSES:
         raise ValidationError(

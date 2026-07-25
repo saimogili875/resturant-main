@@ -26,6 +26,13 @@ _TERMINAL = (OrderStatus.PAID, OrderStatus.CANCELLED)
 
 def _action_buttons(order):
     """Return labelled targets the ADMIN may transition this order to."""
+    if order.status in _TERMINAL:
+        return []
+
+    if order.order_type == "DELV" and order.agent_id is not None:
+        # Once an agent is assigned, admin gets read-only view with emergency cancel only
+        return [{"value": OrderStatus.CANCELLED, "label": "Emergency cancel"}]
+
     targets = state.allowed_targets("ADMIN", order.status)
     if order.order_type == "DINE" or order.agent_id is None:
         targets = [t for t in targets if t != OrderStatus.DISPATCHED]

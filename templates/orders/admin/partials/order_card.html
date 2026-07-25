@@ -36,7 +36,7 @@ Context variables:
       {% elif order.order_type == "DELV" %}
         {% if order.contact_name %}<span class="icon-text">{% include "partials/icon.html" with name="user" %} {{ order.contact_name }}{% if order.contact_phone %} · {{ order.contact_phone }}{% endif %}</span>{% endif %}
         {% if order.agent %}
-          <span class="icon-text">{% include "partials/icon.html" with name="truck" %} Agent: {{ order.agent.get_full_name|default:order.agent.username }}</span>
+          <span class="icon-text">{% include "partials/icon.html" with name="truck" %} Agent: {{ order.agent.get_full_name|default:order.agent.username }}{% if order.agent.phone %} · {{ order.agent.phone }}{% endif %}</span>
         {% else %}
           <em class="text-muted">No agent assigned</em>
         {% endif %}

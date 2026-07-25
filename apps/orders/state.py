@@ -24,13 +24,14 @@ TRANSITIONS: dict[str, dict[str, tuple[str, ...]]] = {
         "KITCHEN": ("READY", "PAID", "CANCEL"),
         # PAID = dine-in cash cleared at table
         "READY": ("DISPATCH", "PAID", "CANCEL"),
-        "DISPATCH": ("ARRIVED", "COLLECT", "PAID", "CANCEL"),
-        "ARRIVED": ("COLLECT", "PAID", "CANCEL"),
-        "COLLECT": ("PAID", "CANCEL"),
+        "DISPATCH": ("CANCEL",),
+        "ARRIVED": ("CANCEL",),
+        "COLLECT": ("CANCEL",),
     },
     "AGENT": {
         "DISPATCH": ("ARRIVED",),
         "ARRIVED": ("COLLECT",),
+        "COLLECT": ("PAID",),
     },
 }
 

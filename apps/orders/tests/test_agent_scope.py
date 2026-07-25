@@ -64,8 +64,9 @@ def test_cannot_transition_another_agents_order(client, agent_a, agent_b):
 
 
 @pytest.mark.django_db
-def test_agent_walks_dispatch_arrived_collect(client, agent_a):
-    """The agent may advance DISPATCH -> ARRIVED -> COLLECT, one legal step each."""
+@pytest.mark.django_db
+def test_agent_walks_dispatch_arrived_collect_paid(client, agent_a):
+    """The agent may advance DISPATCH -> ARRIVED -> COLLECT -> PAID, one legal step each."""
     order = _delivery(agent_a, status=OrderStatus.DISPATCHED)
     client.force_login(agent_a)
 
@@ -82,6 +83,13 @@ def test_agent_walks_dispatch_arrived_collect(client, agent_a):
     assert r2.status_code == 200
     order.refresh_from_db()
     assert order.status == OrderStatus.COLLECTED
+
+    r3 = client.post(
+        f"/agent/orders/{order.pk}/status", {"to_status": OrderStatus.PAID}
+    )
+    assert r3.status_code == 200
+    order.refresh_from_db()
+    assert order.status == OrderStatus.PAID
 
 
 @pytest.mark.django_db
