@@ -381,26 +381,46 @@ def delivery_checkout(request):
 # ---------------------------------------------------------------------------
 
 def _may_access_order(request, order: Order) -> bool:
-    """Authorise viewing/messaging an order without a login (anti-IDOR).
+    """Authorise viewing/messaging an order.
 
     A guest proves ownership with the signed ``delv_token_<pk>`` cookie set
-    at checkout — the ONLY way an anonymous visitor may reach the order.
-    Logged-in staff also qualify: the assigned agent (so they can chat with
-    the customer) and any ADMIN. Everyone else is treated as a stranger.
+    at checkout or via their session ``delv_orders``. Logged-in delivery
+    customers qualify if their contact phone matches the order's phone.
+    Logged-in staff and order owner also qualify.
     """
     try:
         token = request.get_signed_cookie(
             f"delv_token_{order.pk}", salt=_TRACKING_SALT
         )
+        if token == str(order.pk):
+            return True
     except (KeyError, signing.BadSignature):
-        token = None
-    if token == str(order.pk):
+        pass
+
+    delv_orders = request.session.get("delv_orders", [])
+    if order.pk in delv_orders:
         return True
 
+    delivery_customer = getattr(request, "delivery_customer", None)
+    if not delivery_customer:
+        from apps.customer_auth.views import get_logged_in_customer
+        delivery_customer = get_logged_in_customer(request)
+
+    if delivery_customer and delivery_customer.phone:
+        cust_phone = re.sub(r"[\s\-\(\)]", "", delivery_customer.phone.strip())
+        ord_phone = re.sub(r"[\s\-\(\)]", "", (order.contact_phone or "").strip())
+        if cust_phone and ord_phone:
+            if cust_phone == ord_phone:
+                return True
+            if len(cust_phone) >= 10 and len(ord_phone) >= 10 and cust_phone[-10:] == ord_phone[-10:]:
+                return True
+
     user = request.user
-    return user.is_authenticated and (
-        user.role == "ADMIN" or order.agent_id == user.pk
-    )
+    if user and user.is_authenticated:
+        if getattr(user, "role", None) == "ADMIN" or order.agent_id == user.pk or order.customer_id == user.pk:
+            return True
+
+    return False
 
 
 CUSTOMER_STATUS_LABELS = {

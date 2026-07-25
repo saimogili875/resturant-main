@@ -135,3 +135,40 @@ def test_timeline_paid_order(customer_client):
     assert "Paid" in html
     assert 'id="payment-status-badge"' in html
 
+
+@pytest.mark.django_db
+def test_logged_in_customer_matching_phone_can_track(customer_client):
+    """A logged in customer can track an order matching their phone even without the cookie."""
+    order = Order.objects.create(
+        order_type="DELV",
+        status=OrderStatus.IN_KITCHEN,
+        total_amount=Decimal("45.00"),
+        contact_name="Track Customer",
+        contact_phone="9876543210",
+    )
+    # customer_client fixture has phone="9876543210", no cookie set
+    response = customer_client.get(f"/order/{order.pk}/track/")
+    assert response.status_code == 200
+    assert "Order #"+str(order.pk) in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_session_delv_orders_can_track(customer_client):
+    """An order in session delv_orders can be tracked without cookie."""
+    order = Order.objects.create(
+        order_type="DELV",
+        status=OrderStatus.DISPATCHED,
+        total_amount=Decimal("50.00"),
+        contact_name="Guest",
+        contact_phone="1112223333",
+    )
+    session = customer_client.session
+    session["delv_orders"] = [order.pk]
+    session.save()
+
+    response = customer_client.get(f"/order/{order.pk}/track/")
+    assert response.status_code == 200
+    assert "Order #"+str(order.pk) in response.content.decode()
+
+
+
