@@ -340,17 +340,28 @@ def clear_bill(request, session_id: int):
             if session.bill_requested:
                 session.bill_requested = False
                 session.save(update_fields=["bill_requested", "updated_at"])
-    except PermissionDenied as exc:
+    except (PermissionDenied, ValidationError) as exc:
         msg = f"Cannot clear bill: {exc}"
         messages.error(request, msg)
         if request.headers.get("HX-Request"):
+            from apps.orders.views_admin import _action_buttons, _available_agents
+            available_agents = _available_agents()
+            active_orders = [o for o in session.orders.all() if o.status != OrderStatus.CANCELLED]
+            order_cards = [
+                {
+                    "order": o,
+                    "targets": _action_buttons(o),
+                    "available_agents": available_agents,
+                }
+                for o in active_orders
+            ]
             return render(
                 request,
                 "orders/admin/partials/tab_card.html",
                 {
                     "session": session,
                     "table": session.table,
-                    "orders": session.orders.exclude(status=OrderStatus.CANCELLED),
+                    "orders": order_cards,
                     "total": session.total,
                     "bill_requested": session.bill_requested,
                     "error": msg,

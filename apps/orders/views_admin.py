@@ -27,7 +27,7 @@ _TERMINAL = (OrderStatus.PAID, OrderStatus.CANCELLED)
 def _action_buttons(order):
     """Return labelled targets the ADMIN may transition this order to."""
     targets = state.allowed_targets("ADMIN", order.status)
-    if order.agent_id is None:
+    if order.order_type == "DINE" or order.agent_id is None:
         targets = [t for t in targets if t != OrderStatus.DISPATCHED]
     return [
         {"value": t, "label": OrderStatus(t).label}

@@ -115,3 +115,47 @@ def test_transition_dispatch_requires_assigned_agent(
     updated = transition(placed_order, OrderStatus.DISPATCHED, admin_user)
     assert updated.status == OrderStatus.DISPATCHED
 
+
+@pytest.mark.django_db
+def test_dinein_order_cannot_transition_to_delivery_status(burger, admin_user):
+    """Dine-in orders raise ValidationError if attempting transition to DISPATCH, ARRIVED, or COLLECT."""
+    from apps.tables.models import Table
+    from apps.tables.services import start_tab
+
+    table = Table.objects.create(number=99)
+    session = start_tab(table, guest_name="Dine User")
+    dine_order = create_order(
+        order_type="DINE",
+        table=table,
+        session=session,
+        items=[{"menu_item_id": burger.pk, "quantity": 1}],
+    )
+
+    transition(dine_order, OrderStatus.APPROVED, admin_user)
+    transition(dine_order, OrderStatus.IN_KITCHEN, admin_user)
+    transition(dine_order, OrderStatus.READY, admin_user)
+
+    with pytest.raises(ValidationError, match="Dine-in order .* cannot transition to delivery status"):
+        transition(dine_order, OrderStatus.DISPATCHED, admin_user)
+
+
+@pytest.mark.django_db
+def test_dinein_order_cannot_be_assigned_agent(burger, admin_user, agent_user):
+    """Assigning a delivery agent to a DINE order raises PermissionDenied."""
+    from apps.tables.models import Table
+    from apps.tables.services import start_tab
+
+    table = Table.objects.create(number=98)
+    session = start_tab(table, guest_name="Dine User 2")
+    dine_order = create_order(
+        order_type="DINE",
+        table=table,
+        session=session,
+        items=[{"menu_item_id": burger.pk, "quantity": 1}],
+    )
+
+    set_agent_availability(agent_user, available=True)
+    with pytest.raises(PermissionDenied, match="Only delivery orders can be assigned a delivery agent."):
+        assign_agent(dine_order, agent_user, admin_user)
+
+

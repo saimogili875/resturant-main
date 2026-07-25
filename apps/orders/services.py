@@ -261,6 +261,12 @@ def transition(order: Order, to_status: str, actor) -> Order:
             f"from '{frm}' to '{to_status}'."
         )
 
+    DELIVERY_ONLY_STATUSES = (OrderStatus.DISPATCHED, OrderStatus.ARRIVED, OrderStatus.COLLECTED)
+    if order.order_type == "DINE" and to_status in DELIVERY_ONLY_STATUSES:
+        raise ValidationError(
+            f"Dine-in order #{order.pk} cannot transition to delivery status '{OrderStatus(to_status).label}'."
+        )
+
     if to_status == OrderStatus.DISPATCHED and order.agent_id is None:
         raise ValidationError("Assign a delivery agent before dispatching.")
 
@@ -327,6 +333,9 @@ def assign_agent(order: Order, agent_user, actor) -> Order:
     """
     if actor.role != "ADMIN":
         raise PermissionDenied("Only an admin may assign delivery agents.")
+
+    if order.order_type != "DELV":
+        raise PermissionDenied("Only delivery orders can be assigned a delivery agent.")
 
     if agent_user.role != "AGENT":
         raise PermissionDenied("Orders can only be assigned to delivery agents.")
