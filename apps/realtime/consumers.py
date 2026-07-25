@@ -73,7 +73,17 @@ class OrderConsumer(JsonWebsocketConsumer):
             is_allowed = _is_authorised_for_order(user, order)
 
         if not is_allowed:
-            cookies = self.scope.get("cookies", {})
+            cookies = self.scope.get("cookies")
+            if not cookies:
+                cookies = {}
+                headers = dict(self.scope.get("headers", []))
+                cookie_header = headers.get(b"cookie", b"").decode("utf-8", errors="ignore")
+                if cookie_header:
+                    from http.cookies import SimpleCookie
+                    c = SimpleCookie()
+                    c.load(cookie_header)
+                    cookies = {k: v.value for k, v in c.items()}
+
             cookie_key = f"delv_token_{self.order_id}"
             if cookie_key in cookies:
                 try:

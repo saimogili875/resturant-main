@@ -344,3 +344,30 @@ def test_order_history_phone_substring_isolation(client, burger):
     assert f"Order #{order_longer.pk}" not in content
 
 
+@pytest.mark.django_db
+def test_delivery_checkout_links_delivery_customer(customer_client, burger):
+    """Placing a delivery order while logged in as a Customer sets order.delivery_customer."""
+    from apps.customer_auth.models import Customer
+    cust = Customer.objects.get(pk=customer_client.session["customer_id"])
+
+    # Add item to cart
+    cart_url = reverse("orders_customer:cart_add")
+    customer_client.post(cart_url, {"menu_item_id": burger.pk, "quantity": 1})
+
+    # Perform checkout
+    checkout_url = reverse("orders_customer:checkout")
+    res = customer_client.post(
+        checkout_url,
+        {
+            "contact_name": "Test Customer",
+            "contact_phone": "9876543210",
+            "address": "123 Test Street",
+        },
+    )
+    assert res.status_code == 200
+    order = Order.objects.latest("id")
+    assert order.delivery_customer == cust
+    assert f"delv_token_{order.pk}" in res.cookies
+
+
+

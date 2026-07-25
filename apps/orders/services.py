@@ -32,6 +32,7 @@ def create_order(
     order_type: str,
     items: list[dict],
     customer=None,
+    delivery_customer=None,
     table=None,
     session=None,
     contact_name: str = "",
@@ -115,6 +116,7 @@ def create_order(
         order = Order.objects.create(
             order_type=order_type,
             customer=customer,
+            delivery_customer=delivery_customer,
             table=table,
             session=session,
             contact_name=contact_name,

@@ -332,6 +332,7 @@ def delivery_checkout(request):
             order_type="DELV",
             items=items,
             customer=customer,
+            delivery_customer=delivery_customer,
             contact_name=contact_name,
             contact_phone=contact_phone,
             maps_url=maps_url,
@@ -406,14 +407,17 @@ def _may_access_order(request, order: Order) -> bool:
         from apps.customer_auth.views import get_logged_in_customer
         delivery_customer = get_logged_in_customer(request)
 
-    if delivery_customer and delivery_customer.phone:
-        cust_phone = re.sub(r"[\s\-\(\)]", "", delivery_customer.phone.strip())
-        ord_phone = re.sub(r"[\s\-\(\)]", "", (order.contact_phone or "").strip())
-        if cust_phone and ord_phone:
-            if cust_phone == ord_phone:
-                return True
-            if len(cust_phone) >= 10 and len(ord_phone) >= 10 and cust_phone[-10:] == ord_phone[-10:]:
-                return True
+    if delivery_customer:
+        if order.delivery_customer_id and order.delivery_customer_id == delivery_customer.pk:
+            return True
+        if delivery_customer.phone:
+            cust_phone = re.sub(r"[\s\-\(\)]", "", delivery_customer.phone.strip())
+            ord_phone = re.sub(r"[\s\-\(\)]", "", (order.contact_phone or "").strip())
+            if cust_phone and ord_phone:
+                if cust_phone == ord_phone:
+                    return True
+                if len(cust_phone) >= 10 and len(ord_phone) >= 10 and cust_phone[-10:] == ord_phone[-10:]:
+                    return True
 
     user = request.user
     if user and user.is_authenticated:
@@ -512,6 +516,8 @@ def order_history(request):
     cleaned_phone = re.sub(r"[\s\-\(\)]", "", phone) if phone else ""
 
     query = Q()
+    if customer:
+        query |= Q(delivery_customer=customer)
     if cleaned_phone:
         query |= Q(contact_phone__iendswith=cleaned_phone[-10:]) if len(cleaned_phone) >= 10 else Q(contact_phone=phone)
     if delv_order_ids:

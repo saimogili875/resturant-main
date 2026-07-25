@@ -86,6 +86,13 @@ class Order(TimeStampedModel):
         on_delete=models.SET_NULL,
         related_name="orders",
     )
+    delivery_customer = models.ForeignKey(
+        "customer_auth.Customer",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="orders",
+    )
     agent = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
