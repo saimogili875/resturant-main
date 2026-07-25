@@ -9,6 +9,7 @@ import logging
 
 from asgiref.sync import async_to_sync
 from channels.generic.websocket import JsonWebsocketConsumer
+from django.core import signing
 
 from apps.orders.models import Order
 from apps.tables.models import Table
@@ -31,9 +32,9 @@ def _is_authorised_for_order(user, order: Order) -> bool:
     This prevents IDOR over sockets — a customer can't spy on orders
     that aren't theirs.
     """
-    if not user.is_authenticated:
+    if not user or not user.is_authenticated:
         return False
-    if user.role == "ADMIN":
+    if getattr(user, "role", None) == "ADMIN":
         return True
     if order.customer_id and order.customer_id == user.pk:
         return True
@@ -49,20 +50,15 @@ def _is_authorised_for_order(user, order: Order) -> bool:
 class OrderConsumer(JsonWebsocketConsumer):
     """WebSocket for a single order: ws/orders/<order_id>/.
 
-    On connect: authenticates via scope["user"], loads the order, checks
-    ownership/role, then joins group "order.<id>". Group messages are
-    relayed to the client as JSON.
+    On connect: authenticates via scope["user"] or signed delv_token cookie,
+    loads the order, checks ownership/role, then joins group "order.<id>".
+    Group messages are relayed to the client as JSON.
     """
 
     def connect(self):
         """Authenticate, authorise, and join the order group."""
         self.order_id = self.scope["url_route"]["kwargs"]["order_id"]
         self.group_name = f"order.{self.order_id}"
-        user = self.scope.get("user")
-
-        if not user or not user.is_authenticated:
-            self.close()
-            return
 
         try:
             order = Order.objects.get(pk=self.order_id)
@@ -70,7 +66,26 @@ class OrderConsumer(JsonWebsocketConsumer):
             self.close()
             return
 
-        if not _is_authorised_for_order(user, order):
+        user = self.scope.get("user")
+        is_allowed = False
+
+        if user and user.is_authenticated:
+            is_allowed = _is_authorised_for_order(user, order)
+
+        if not is_allowed:
+            cookies = self.scope.get("cookies", {})
+            cookie_key = f"delv_token_{self.order_id}"
+            if cookie_key in cookies:
+                try:
+                    val = signing.get_cookie_signer(salt=cookie_key + "delv_tracking").unsign(
+                        cookies[cookie_key]
+                    )
+                    if val == str(self.order_id):
+                        is_allowed = True
+                except (signing.BadSignature, Exception):
+                    pass
+
+        if not is_allowed:
             self.close()
             return
 

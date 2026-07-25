@@ -9,10 +9,17 @@ from apps.core.ratelimits import login as login_ratelimit
 from .models import LoginAttempt, Role, User
 
 
+def _get_client_ip(request):
+    x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
+    if x_forwarded_for:
+        return x_forwarded_for.split(",")[0].strip()
+    return request.META.get("REMOTE_ADDR", "127.0.0.1")
+
+
 class RoleLoginView(auth_views.LoginView):
     """Login view with iPhone-style progressive lockout and role-based redirect.
 
-    Lockout enforcement (per-username, cumulative):
+    Lockout enforcement (per username + IP pair):
         Attempts 1-2 → no lockout
         Attempt 3    → 1 minute
         Attempt 4    → 5 minutes
@@ -58,10 +65,13 @@ class RoleLoginView(auth_views.LoginView):
         """Override POST to enforce progressive lockout before authentication."""
         form = self.get_form()
         username = request.POST.get("username", "").strip()
+        client_ip = _get_client_ip(request)
 
         # Admin-role users are exempt from lockout.
         if username and not self._is_admin_user(username):
-            tracker, _ = LoginAttempt.objects.get_or_create(username=username)
+            tracker, _ = LoginAttempt.objects.get_or_create(
+                username=username, ip_address=client_ip
+            )
 
             # If currently locked out, reject immediately (even correct passwords).
             if tracker.is_locked:
@@ -81,18 +91,20 @@ class RoleLoginView(auth_views.LoginView):
 
         # Attempt authentication via the standard form validation.
         if form.is_valid():
-            # Successful login — reset lockout tracker.
+            # Successful login — reset lockout tracker for this IP.
             user = form.get_user()
             if user.role != Role.ADMIN:
-                LoginAttempt.objects.filter(username=user.username).update(
-                    failed_attempts=0, locked_until=None
-                )
+                LoginAttempt.objects.filter(
+                    username=user.username, ip_address=client_ip
+                ).update(failed_attempts=0, locked_until=None)
             auth_login(request, user)
             return self.form_valid(form)
 
         # Authentication failed — record the failure.
         if username and not self._is_admin_user(username):
-            tracker, _ = LoginAttempt.objects.get_or_create(username=username)
+            tracker, _ = LoginAttempt.objects.get_or_create(
+                username=username, ip_address=client_ip
+            )
             tracker.record_failure()
 
             # If this failure just triggered a lockout, show lockout message

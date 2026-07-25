@@ -4,7 +4,7 @@ Groups all active orders for this guest session under one card with a single
 Clear Bill action.
 {% endcomment %}
 {% load currency %}
-<article class="card {% if bill_requested %}border-warning{% endif %} {% if cleared or session.closed_at %}border-success{% endif %}" id="tab-card-{{ session.pk }}" style="margin-bottom: 1rem; {% if cleared or session.closed_at %}background-color: var(--color-success-light, #ecfdf5); border-color: var(--color-success, #10b981);{% elif bill_requested %}border-color: var(--color-warning, #f59e0b); border-width: 2px;{% endif %}">
+<article class="card {% if bill_requested %}border-warning{% endif %} {% if cleared or session.closed_at %}border-success{% endif %}" id="tab-card-{{ session.pk }}" {% if cleared or session.closed_at %}style="margin-bottom: 1rem; background-color: var(--color-success-light, #ecfdf5); border-color: var(--color-success, #10b981);"{% elif bill_requested %}style="margin-bottom: 1rem; border-color: var(--color-warning, #f59e0b); border-width: 2px;"{% else %}style="margin-bottom: 1rem;"{% endif %}>
   {% if cleared or session.closed_at %}
   {% comment %}Closed / Cleared State{% endcomment %}
   <div class="card-body text-center py-4">

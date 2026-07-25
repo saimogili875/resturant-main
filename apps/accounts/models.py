@@ -70,13 +70,20 @@ class LoginAttempt(models.Model):
         Attempt 7+   → 24 hours (requires manual admin unlock)
     """
 
-    username = models.CharField(max_length=150, unique=True, db_index=True)
+    username = models.CharField(max_length=150, db_index=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True, db_index=True)
     failed_attempts = models.PositiveIntegerField(default=0)
     locked_until = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         verbose_name = "Login Attempt Tracker"
         verbose_name_plural = "Login Attempt Trackers"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["username", "ip_address"],
+                name="unique_username_ip_lockout",
+            )
+        ]
 
     # Escalating lockout durations keyed by attempt number.
     LOCKOUT_SCHEDULE = {
