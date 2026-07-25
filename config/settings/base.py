@@ -168,8 +168,8 @@ CONTENT_SECURITY_POLICY = {
         "script-src": ["'self'", "https://unpkg.com"],
         # Templates use inline styles
         "style-src": ["'self'", "'unsafe-inline'"],
-        # Local + data uris
-        "img-src": ["'self'", "data:"],
+        # Local + data uris + blob
+        "img-src": ["'self'", "data:", "blob:"],
         # WebSocket status feed
         "connect-src": ["'self'", "ws:", "wss:"],
         "font-src": ["'self'"],
