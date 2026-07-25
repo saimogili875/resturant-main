@@ -139,6 +139,10 @@ def customer_signup(request):
     return render(request, "customer_auth/signup.html", context)
 
 
+from apps.core.ratelimits import verify_otp as verify_otp_ratelimit
+
+
+@verify_otp_ratelimit
 @require_http_methods(["GET", "POST"])
 def verify_otp(request):
     """OTP verification page — customer enters the 6-digit code received via email."""
@@ -158,7 +162,7 @@ def verify_otp(request):
         form = OTPVerifyForm(request.POST)
         if form.is_valid():
             otp = form.cleaned_data["otp"]
-            is_valid = services.verify_otp_in_redis(phone, email, otp)
+            is_valid, is_locked = services.verify_otp_in_redis(phone, email, otp)
 
             if is_valid:
                 customer, created = Customer.objects.get_or_create(
@@ -189,6 +193,11 @@ def verify_otp(request):
                 if cart_raw:
                     return redirect("orders_customer:checkout")
                 return redirect("orders_customer:menu")
+            elif is_locked:
+                messages.error(
+                    request,
+                    "Too many failed verification attempts. This code has been invalidated. Please request a new code.",
+                )
             else:
                 messages.error(
                     request,

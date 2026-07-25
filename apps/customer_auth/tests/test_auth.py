@@ -46,13 +46,44 @@ def test_redis_otp_storage_and_verification():
     services.store_otp_in_redis(phone, email, otp)
 
     # Wrong OTP fails
-    assert not services.verify_otp_in_redis(phone, email, "654321")
+    is_valid, is_locked = services.verify_otp_in_redis(phone, email, "654321")
+    assert not is_valid
+    assert not is_locked
 
     # Correct OTP succeeds
-    assert services.verify_otp_in_redis(phone, email, otp)
+    is_valid, is_locked = services.verify_otp_in_redis(phone, email, otp)
+    assert is_valid
+    assert not is_locked
 
     # Single-use: Second verification fails because OTP was deleted
-    assert not services.verify_otp_in_redis(phone, email, otp)
+    is_valid, is_locked = services.verify_otp_in_redis(phone, email, otp)
+    assert not is_valid
+    assert not is_locked
+
+
+def test_otp_verification_lockout():
+    """5 failed OTP verification attempts lock out and invalidate the OTP key."""
+    phone = "9876543210"
+    email = "lockout@example.com"
+    otp = "123456"
+
+    services.store_otp_in_redis(phone, email, otp)
+
+    # 4 wrong attempts
+    for _ in range(4):
+        is_valid, is_locked = services.verify_otp_in_redis(phone, email, "000000")
+        assert not is_valid
+        assert not is_locked
+
+    # 5th wrong attempt triggers lockout
+    is_valid, is_locked = services.verify_otp_in_redis(phone, email, "000000")
+    assert not is_valid
+    assert is_locked
+
+    # Subsequent attempt (even with correct code) is rejected because code was invalidated
+    is_valid, is_locked = services.verify_otp_in_redis(phone, email, otp)
+    assert not is_valid
+    assert is_locked
 
 
 def test_otp_rate_limiting():

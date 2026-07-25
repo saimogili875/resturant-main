@@ -15,3 +15,6 @@ dine_in_order = ratelimit(key="ip", rate="20/m", method="POST", block=True)
 
 # Quick messaging POST: ~10/min (blocks spam messages)
 messaging = ratelimit(key="ip", rate="10/m", method="POST", block=True)
+
+# Customer OTP verification POST: ~10/min (blocks OTP brute-force)
+verify_otp = ratelimit(key="ip", rate="10/m", method="POST", block=True)
