@@ -217,3 +217,27 @@ def test_simultaneous_open_tabs_guest_isolation(table, menu_item):
     resp_b = client_b.get(reverse("tables:receipt", args=[table.qr_token]))
     assert b"\xe2\x82\xb915.00" in resp_b.content
     assert b"Bob" in resp_b.content
+
+
+@pytest.mark.django_db
+def test_receipt_view_unit_price_regression(client, table, menu_item):
+    """Regression test for Bug #8: Ensure receipt_view renders line item unit_price formatted with money filter."""
+    from apps.core.templatetags.currency import money
+
+    menu_item.price = Decimal("14.75")
+    menu_item.save()
+
+    client.post(reverse("tables:start_tab", args=[table.qr_token]), {"guest_name": "Dave"})
+    client.post(
+        reverse("tables:cart_add", args=[table.qr_token]),
+        {"menu_item_id": menu_item.pk, "quantity": 1},
+    )
+    client.post(reverse("tables:place_order", args=[table.qr_token]))
+
+    receipt_url = reverse("tables:receipt", args=[table.qr_token])
+    resp = client.get(receipt_url)
+    assert resp.status_code == 200
+
+    expected_formatted_price = money(Decimal("14.75"))
+    assert expected_formatted_price.encode("utf-8") in resp.content
+
