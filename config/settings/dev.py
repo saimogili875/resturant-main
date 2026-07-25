@@ -10,7 +10,7 @@ DEBUG = True
 ALLOWED_HOSTS = ["*"]
 
 # ---------- email ----------
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.smtp.EmailBackend")
 
 # ---------- caches (no Redis needed in dev) ----------
 CACHES = {

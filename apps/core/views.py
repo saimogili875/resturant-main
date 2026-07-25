@@ -67,15 +67,18 @@ def contact(request):
                 f"Message:\n{user_message}"
             )
             recipient = getattr(settings, "EMAIL_HOST_USER", "caferudrahyd@gmail.com") or "caferudrahyd@gmail.com"
+            from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None) or getattr(settings, "EMAIL_HOST_USER", None) or recipient
 
             try:
-                send_mail(
+                from django.core.mail import EmailMessage
+                email = EmailMessage(
                     subject=subject,
-                    message=body,
-                    from_email=settings.DEFAULT_FROM_EMAIL or sender_email,
-                    recipient_list=[recipient],
-                    fail_silently=False,
+                    body=body,
+                    from_email=from_email,
+                    to=[recipient],
+                    reply_to=[sender_email],
                 )
+                email.send(fail_silently=False)
                 messages.success(request, "Your message has been sent successfully!")
                 form = ContactForm()  # reset form after success
             except Exception as e:
