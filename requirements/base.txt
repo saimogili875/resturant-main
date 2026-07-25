@@ -12,5 +12,6 @@ qrcode
 django-csp
 django-ratelimit~=4.1
 whitenoise~=6.8
+django-storages[s3]
 resend
 

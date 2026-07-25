@@ -313,10 +313,9 @@ def assign_agent(order: Order, agent_user, actor) -> Order:
     """Assign a delivery order to an available agent (admin action).
 
     Assigning here IS the handoff: this is how the admin forwards the
-    delivery to a courier. Once the agent is set they gain access to the
-    order's tracking room — and with it the Google Maps directions URL the
-    customer built at checkout. The admin never pastes the link by hand;
-    the maps_url rides along with the assignment.
+    delivery to a courier. Assigning an agent set order.agent AND
+    transitions the order to DISPATCH atomically, so the agent immediately
+    sees action buttons on their dashboard.
 
     Args:
         order:      The delivery Order to assign.
@@ -324,15 +323,14 @@ def assign_agent(order: Order, agent_user, actor) -> Order:
         actor:      The User performing the assignment (must be ADMIN).
 
     Returns:
-        The updated Order with its ``agent`` set.
+        The updated Order with its ``agent`` set and status transitioned to DISPATCH.
 
     Raises:
         PermissionDenied: If the actor is not an ADMIN, if agent_user is not
                           an AGENT, or if that agent is not currently available.
 
-    Writes an append-only OrderEvent (status unchanged) so the assignment
-    shows up in the audit trail, then broadcasts a tiny notification to the
-    agent's personal room and the order room so both sides update live.
+    Calls transition() so the status moves to DISPATCHED and an audit OrderEvent
+    is logged, then broadcasts notifications to the agent's room and order room.
     """
     if actor.role != "ADMIN":
         raise PermissionDenied("Only an admin may assign delivery agents.")
@@ -352,13 +350,8 @@ def assign_agent(order: Order, agent_user, actor) -> Order:
         order.agent = agent_user
         order.save(update_fields=["agent"])
 
-        # Audit the assignment (status unchanged).
-        OrderEvent.objects.create(
-            order=order,
-            from_status=order.status,
-            to_status=order.status,
-            actor=actor,
-        )
+        if order.status != OrderStatus.DISPATCHED:
+            transition(order, OrderStatus.DISPATCHED, actor)
 
     # Notify the agent's room and the order room (fire-and-forget, after commit).
     from apps.realtime.broadcast import broadcast

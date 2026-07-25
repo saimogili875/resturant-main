@@ -34,8 +34,7 @@ def _action_buttons(order):
         return [{"value": OrderStatus.CANCELLED, "label": "Emergency cancel"}]
 
     targets = state.allowed_targets("ADMIN", order.status)
-    if order.order_type == "DINE" or order.agent_id is None:
-        targets = [t for t in targets if t != OrderStatus.DISPATCHED]
+    targets = [t for t in targets if t != OrderStatus.DISPATCHED]
     return [
         {"value": t, "label": OrderStatus(t).label}
         for t in targets

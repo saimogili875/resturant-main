@@ -81,7 +81,7 @@ Context variables:
   {% endcomment %}
   {% if order.status == "PAID" or order.status == "CANCEL" %}
   {% else %}
-  {% if targets or order.order_type == "DELV" and not order.agent %}
+  {% if targets or order.order_type == "DELV" %}
   <div class="card-footer">
     <div class="order-card__actions">
       {% for action in targets %}
@@ -131,8 +131,8 @@ Context variables:
       {% endfor %}
     </div>
 
-    {# Assign Agent (delivery orders without an agent) #}
-    {% if order.order_type == "DELV" and not order.agent %}
+    {# Assign / Reassign Agent (delivery orders) #}
+    {% if order.order_type == "DELV" %}
     {% include "orders/admin/partials/assign_control.html" %}
     {% endif %}
   </div>

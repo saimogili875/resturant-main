@@ -111,8 +111,7 @@ def test_transition_dispatch_requires_assigned_agent(
     with pytest.raises(ValidationError, match="Assign a delivery agent before dispatching."):
         transition(placed_order, OrderStatus.DISPATCHED, admin_user)
 
-    assign_agent(placed_order, agent_user, admin_user)
-    updated = transition(placed_order, OrderStatus.DISPATCHED, admin_user)
+    updated = assign_agent(placed_order, agent_user, admin_user)
     assert updated.status == OrderStatus.DISPATCHED
 
 

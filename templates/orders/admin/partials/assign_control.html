@@ -10,14 +10,21 @@ role AGENT whose AgentProfile.is_available is True, so every option is dispatcha
   hx-swap="outerHTML"
   class="assign-control">
   {% csrf_token %}
-  {% if available_agents %}
+  {% if available_agents or order.agent %}
   <select name="agent_id" required aria-label="Assign delivery agent">
-    <option value="" disabled selected>Select an available agent&hellip;</option>
+    <option value="" disabled {% if not order.agent %}selected{% endif %}>Select an available agent&hellip;</option>
+    {% if order.agent and order.agent not in available_agents %}
+    <option value="{{ order.agent.pk }}" selected>
+      {{ order.agent.get_full_name|default:order.agent.username }} (Assigned)
+    </option>
+    {% endif %}
     {% for agent in available_agents %}
-    <option value="{{ agent.pk }}">{{ agent.get_full_name|default:agent.username }}</option>
+    <option value="{{ agent.pk }}" {% if order.agent_id == agent.pk %}selected{% endif %}>
+      {{ agent.get_full_name|default:agent.username }}{% if order.agent_id == agent.pk %} (Assigned){% endif %}
+    </option>
     {% endfor %}
   </select>
-  <button type="submit" class="btn btn-primary">Assign</button>
+  <button type="submit" class="btn btn-primary">{% if order.agent %}Reassign{% else %}Assign{% endif %}</button>
   {% else %}
   <div class="text-sm text-muted">
     No available agents — <a href="{% url 'accounts_admin:agents' %}" target="_blank">enable one in Agents</a>

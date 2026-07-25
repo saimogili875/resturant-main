@@ -7,7 +7,9 @@ from django.core.exceptions import PermissionDenied
 from apps.accounts.models import Role, User
 from apps.accounts.services import set_agent_availability
 from apps.menu.models import Category, MenuItem
-from apps.orders.services import assign_agent, create_order
+from apps.orders.models import OrderStatus
+from apps.orders.services import assign_agent, create_order, transition
+from apps.orders.views_agent import _next_actions
 
 
 @pytest.fixture
@@ -49,7 +51,7 @@ def delivery_order(burger):
 def test_assign_available_agent_sets_agent_and_writes_event(
     delivery_order, available_agent, admin_user
 ):
-    """Assigning an available agent sets order.agent and logs an audit event."""
+    """Assigning an available agent sets order.agent, transitions status to DISPATCH, and logs an audit event."""
     status_before = delivery_order.status
     event_count_before = delivery_order.events.count()
 
@@ -58,13 +60,36 @@ def test_assign_available_agent_sets_agent_and_writes_event(
     assert updated.agent == available_agent
     updated.refresh_from_db()
     assert updated.agent_id == available_agent.pk
-    # Status is unchanged; the event just records the assignment.
-    assert updated.status == status_before
+    # Assigning an agent transitions the order to DISPATCHED atomically
+    assert updated.status == OrderStatus.DISPATCHED
     assert updated.events.count() == event_count_before + 1
     latest = updated.events.order_by("at").last()
     assert latest.from_status == status_before
-    assert latest.to_status == status_before
+    assert latest.to_status == OrderStatus.DISPATCHED
     assert latest.actor == admin_user
+
+
+@pytest.mark.django_db
+def test_assign_agent_transitions_ready_order_to_dispatch_and_exposes_agent_action(
+    delivery_order, available_agent, admin_user
+):
+    """Assigning an agent to a READY delivery order results in order.status == DISPATCH immediately,
+    and _next_actions() for that agent now returns the 'Arrived' action right away — no separate step needed."""
+    transition(delivery_order, OrderStatus.APPROVED, admin_user)
+    transition(delivery_order, OrderStatus.IN_KITCHEN, admin_user)
+    transition(delivery_order, OrderStatus.READY, admin_user)
+
+    assert delivery_order.status == OrderStatus.READY
+
+    updated = assign_agent(delivery_order, available_agent, admin_user)
+
+    assert updated.status == OrderStatus.DISPATCHED
+    assert updated.agent == available_agent
+
+    actions = _next_actions(updated)
+    assert len(actions) == 1
+    assert actions[0]["value"] == OrderStatus.ARRIVED
+    assert actions[0]["label"] == "Driver arrived"
 
 
 @pytest.mark.django_db

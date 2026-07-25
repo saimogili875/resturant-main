@@ -33,3 +33,10 @@ def test_compress_image_downscales():
         assert max(img.width, img.height) == 1024
         assert img.width == 1024
         assert img.height == 512
+
+
+def test_storage_backends_configuration():
+    """Verify dev uses FileSystemStorage while prod configures S3Storage for media uploads."""
+    from config.settings import dev, prod
+    assert dev.STORAGES["default"]["BACKEND"] == "django.core.files.storage.FileSystemStorage"
+    assert prod.STORAGES["default"]["BACKEND"] == "storages.backends.s3.S3Storage"

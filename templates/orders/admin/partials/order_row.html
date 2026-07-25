@@ -13,10 +13,6 @@ caller must supply `available_agents` in the context.
   <td>{{ order.total_amount|money }}</td>
   <td>{{ order.get_status_display }}</td>
   <td>
-    {% if order.agent %}
-    <span class="agent-assigned">{{ order.agent.get_full_name|default:order.agent.username }}</span>
-    {% else %}
     {% include "orders/admin/partials/assign_control.html" %}
-    {% endif %}
   </td>
 </tr>

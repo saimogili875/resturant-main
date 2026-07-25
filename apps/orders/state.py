@@ -19,9 +19,9 @@ To add a new status or change who can do what:
 # ---------------------------------------------------------------------------
 TRANSITIONS: dict[str, dict[str, tuple[str, ...]]] = {
     "ADMIN": {
-        "PLACED": ("APPROVED", "PAID", "CANCEL"),
-        "APPROVED": ("KITCHEN", "PAID", "CANCEL"),
-        "KITCHEN": ("READY", "PAID", "CANCEL"),
+        "PLACED": ("APPROVED", "DISPATCH", "PAID", "CANCEL"),
+        "APPROVED": ("KITCHEN", "DISPATCH", "PAID", "CANCEL"),
+        "KITCHEN": ("READY", "DISPATCH", "PAID", "CANCEL"),
         # PAID = dine-in cash cleared at table
         "READY": ("DISPATCH", "PAID", "CANCEL"),
         "DISPATCH": ("CANCEL",),

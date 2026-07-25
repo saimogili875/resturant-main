@@ -75,3 +75,32 @@ def test_admin_dashboard_empty_agent_state(client, admin_user, delivery_order):
     assert "enable one in Agents" in html
     no_agents_split = html.split("No available agents")[0]
     assert "<form" not in no_agents_split.split("assign-control")[-1]
+
+
+@pytest.mark.django_db
+def test_admin_reassign_agent_view_success(client, admin_user, available_agent, delivery_order):
+    """Reassigning an order to a second agent updates the agent and retains the assign control."""
+    agent_b = User.objects.create_user(username="agent_b", password="pw", role=Role.AGENT)
+    set_agent_availability(agent_b, available=True)
+
+    client.force_login(admin_user)
+
+    url = reverse("orders_admin:assign", args=[delivery_order.pk])
+    # Initial assignment
+    res1 = client.post(url, {"agent_id": available_agent.pk})
+    assert res1.status_code == 200
+    html1 = res1.content.decode()
+    assert 'name="agent_id"' in html1
+    assert "Reassign" in html1
+
+    # Reassignment to second agent
+    res2 = client.post(url, {"agent_id": agent_b.pk})
+    assert res2.status_code == 200
+    delivery_order.refresh_from_db()
+    assert delivery_order.agent == agent_b
+
+    html2 = res2.content.decode()
+    assert "agent_b" in html2
+    assert 'name="agent_id"' in html2
+    assert "Reassign" in html2
+

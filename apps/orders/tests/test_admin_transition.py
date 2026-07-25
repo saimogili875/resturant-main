@@ -145,7 +145,6 @@ def test_admin_cannot_clear_delivery_payment_collect_to_paid(client, admin_user,
     transition(placed_order, OrderStatus.IN_KITCHEN, admin_user)
     transition(placed_order, OrderStatus.READY, admin_user)
     assign_agent(placed_order, agent_user, admin_user)
-    transition(placed_order, OrderStatus.DISPATCHED, admin_user)
     transition(placed_order, OrderStatus.ARRIVED, agent_user)
     transition(placed_order, OrderStatus.COLLECTED, agent_user)
 
@@ -165,7 +164,6 @@ def test_assigned_agent_clears_payment_unassigned_agent_blocked(agent_user, plac
     transition(placed_order, OrderStatus.IN_KITCHEN, admin_user)
     transition(placed_order, OrderStatus.READY, admin_user)
     assign_agent(placed_order, agent_user, admin_user)
-    transition(placed_order, OrderStatus.DISPATCHED, admin_user)
     transition(placed_order, OrderStatus.ARRIVED, agent_user)
     transition(placed_order, OrderStatus.COLLECTED, agent_user)
 
