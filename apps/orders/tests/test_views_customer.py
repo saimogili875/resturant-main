@@ -5,7 +5,7 @@ import pytest
 from django.urls import reverse
 
 from apps.menu.models import Category, MenuItem
-from apps.orders.models import Order
+from apps.orders.models import Order, OrderStatus
 
 
 @pytest.fixture
@@ -306,4 +306,41 @@ def test_order_history_filters_all_completed_not_completed(customer_client, burg
     content_not_completed = res_not_completed.content.decode("utf-8")
     assert f"Order #{order1.pk}" not in content_not_completed
     assert f"Order #{order2.pk}" in content_not_completed
+
+
+@pytest.mark.django_db
+def test_order_history_phone_substring_isolation(client, burger):
+    """Customer with phone 9876543210 should NOT match order for 987654321099."""
+    from apps.customer_auth.models import Customer
+    cust = Customer.objects.create(phone="9876543210", email="sub@example.com", name="Sub Customer")
+    session = client.session
+    session["customer_id"] = cust.pk
+    session.save()
+
+    # Order 1: exact match for customer's phone
+    order_exact = Order.objects.create(
+        order_type="DELV",
+        status=OrderStatus.PLACED,
+        contact_name="Exact Match",
+        contact_phone="9876543210",
+        total_amount=Decimal("10.00"),
+    )
+
+    # Order 2: phone containing customer's phone as prefix/substring, but different full number
+    order_longer = Order.objects.create(
+        order_type="DELV",
+        status=OrderStatus.PLACED,
+        contact_name="Longer Phone",
+        contact_phone="987654321099",
+        total_amount=Decimal("10.00"),
+    )
+
+    url = reverse("orders_customer:my_orders")
+    res = client.get(url)
+    assert res.status_code == 200
+    content = res.content.decode("utf-8")
+
+    assert f"Order #{order_exact.pk}" in content
+    assert f"Order #{order_longer.pk}" not in content
+
 

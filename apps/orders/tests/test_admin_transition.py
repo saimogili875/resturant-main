@@ -7,11 +7,15 @@ and non-admin users get 403.
 from decimal import Decimal
 
 import pytest
+from django.urls import reverse
 
 from apps.accounts.models import Role, User
+from apps.accounts.services import set_agent_availability
 from apps.menu.models import Category, MenuItem
 from apps.orders.models import OrderEvent, OrderStatus
-from apps.orders.services import create_order
+from apps.orders.services import assign_agent, create_order, transition
+from apps.orders.views_admin import _action_buttons
+
 
 
 @pytest.fixture
@@ -104,3 +108,35 @@ def test_missing_order_returns_404(client, admin_user):
     )
 
     assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_action_buttons_and_dashboard_hide_dispatch_pre_assignment(client, admin_user, agent_user, placed_order):
+    """_action_buttons and dashboard template hide DISPATCH button until an agent is assigned."""
+    set_agent_availability(agent_user, available=True)
+    transition(placed_order, OrderStatus.APPROVED, admin_user)
+    transition(placed_order, OrderStatus.IN_KITCHEN, admin_user)
+    transition(placed_order, OrderStatus.READY, admin_user)
+
+    # Pre-assignment: DISPATCH is excluded from _action_buttons and dashboard output
+    buttons_before = _action_buttons(placed_order)
+    target_values_before = [b["value"] for b in buttons_before]
+    assert OrderStatus.DISPATCHED not in target_values_before
+    assert OrderStatus.PAID in target_values_before
+    assert OrderStatus.CANCELLED in target_values_before
+
+    client.force_login(admin_user)
+    resp = client.get(reverse("orders_admin:dashboard"))
+    assert resp.status_code == 200
+    assert b'{"to_status": "DISPATCH"}' not in resp.content
+
+    # Post-assignment: DISPATCH becomes available
+    assign_agent(placed_order, agent_user, admin_user)
+    buttons_after = _action_buttons(placed_order)
+    target_values_after = [b["value"] for b in buttons_after]
+    assert OrderStatus.DISPATCHED in target_values_after
+
+    resp_after = client.get(reverse("orders_admin:dashboard"))
+    assert resp_after.status_code == 200
+    assert b'{"to_status": "DISPATCH"}' in resp_after.content
+

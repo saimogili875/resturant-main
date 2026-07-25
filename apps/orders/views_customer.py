@@ -513,7 +513,7 @@ def order_history(request):
 
     query = Q()
     if cleaned_phone:
-        query |= Q(contact_phone__icontains=cleaned_phone[-10:]) if len(cleaned_phone) >= 10 else Q(contact_phone=phone)
+        query |= Q(contact_phone__iendswith=cleaned_phone[-10:]) if len(cleaned_phone) >= 10 else Q(contact_phone=phone)
     if delv_order_ids:
         query |= Q(pk__in=delv_order_ids)
 

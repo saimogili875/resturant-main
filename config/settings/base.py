@@ -194,3 +194,7 @@ RESEND_API_KEY = env("RESEND_API_KEY", default="")
 
 # ---------- default primary key ----------
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# ---------- test runner ----------
+TEST_RUNNER = "config.test_runner.PytestTestRunner"
+

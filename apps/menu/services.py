@@ -112,4 +112,5 @@ def toggle_availability(item: MenuItem) -> MenuItem:
     """
     item.is_available = not item.is_available
     item.save(update_fields=["is_available"])
+    invalidate_menu_cache()
     return item

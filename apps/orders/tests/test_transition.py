@@ -2,12 +2,14 @@
 from decimal import Decimal
 
 import pytest
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 
 from apps.accounts.models import Role, User
+from apps.accounts.services import set_agent_availability
 from apps.menu.models import Category, MenuItem
 from apps.orders.models import OrderStatus
-from apps.orders.services import create_order, transition
+from apps.orders.services import assign_agent, create_order, transition
+
 
 
 @pytest.fixture
@@ -93,3 +95,23 @@ def test_transition_disallowed_no_side_effects(
     placed_order.refresh_from_db()
     assert placed_order.status == OrderStatus.PLACED
     assert placed_order.events.count() == initial_event_count
+
+
+@pytest.mark.django_db
+def test_transition_dispatch_requires_assigned_agent(
+    placed_order, admin_user, agent_user
+):
+    """Transitioning to DISPATCH raises ValidationError if order.agent is None, and succeeds after assignment."""
+    set_agent_availability(agent_user, available=True)
+    transition(placed_order, OrderStatus.APPROVED, admin_user)
+    transition(placed_order, OrderStatus.IN_KITCHEN, admin_user)
+    transition(placed_order, OrderStatus.READY, admin_user)
+
+    assert placed_order.agent_id is None
+    with pytest.raises(ValidationError, match="Assign a delivery agent before dispatching."):
+        transition(placed_order, OrderStatus.DISPATCHED, admin_user)
+
+    assign_agent(placed_order, agent_user, admin_user)
+    updated = transition(placed_order, OrderStatus.DISPATCHED, admin_user)
+    assert updated.status == OrderStatus.DISPATCHED
+

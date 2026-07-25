@@ -64,7 +64,7 @@
             <tr style="border-bottom: 1px solid var(--border-subtle);">
               <td style="padding: var(--space-2) 0;">{{ item.name_snap }}</td>
               <td style="padding: var(--space-2) 0; text-align: center;">{{ item.quantity }}</td>
-              <td style="padding: var(--space-2) 0; text-align: right;">{{ item.price_snap|money }}</td>
+              <td style="padding: var(--space-2) 0; text-align: right;">{{ item.unit_price|money }}</td>
               <td style="padding: var(--space-2) 0; text-align: right; font-weight: 600;">{{ item.line_total|money }}</td>
             </tr>
             {% endfor %}

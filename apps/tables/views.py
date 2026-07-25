@@ -5,7 +5,9 @@ session lifecycle. Never computes pricing or mutates status directly.
 """
 from decimal import Decimal
 
-from django.core.exceptions import ValidationError
+from django.contrib import messages
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import transaction
 from django.db.models import Prefetch, Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -328,17 +330,37 @@ def clear_bill(request, session_id: int):
     """Admin endpoint to clear cash for a table tab and close the session."""
     session = get_object_or_404(TableSession, pk=session_id)
 
-    for order in session.orders.exclude(status=OrderStatus.CANCELLED):
-        if order.status != OrderStatus.PAID:
-            transition(order, OrderStatus.PAID, request.user)
+    try:
+        with transaction.atomic():
+            for order in session.orders.exclude(status=OrderStatus.CANCELLED):
+                if order.status != OrderStatus.PAID:
+                    transition(order, OrderStatus.PAID, request.user)
 
-    close_session(session)
-    if session.bill_requested:
-        session.bill_requested = False
-        session.save(update_fields=["bill_requested", "updated_at"])
+            close_session(session)
+            if session.bill_requested:
+                session.bill_requested = False
+                session.save(update_fields=["bill_requested", "updated_at"])
+    except PermissionDenied as exc:
+        msg = f"Cannot clear bill: {exc}"
+        messages.error(request, msg)
+        if request.headers.get("HX-Request"):
+            return render(
+                request,
+                "orders/admin/partials/tab_card.html",
+                {
+                    "session": session,
+                    "table": session.table,
+                    "orders": session.orders.exclude(status=OrderStatus.CANCELLED),
+                    "total": session.total,
+                    "bill_requested": session.bill_requested,
+                    "error": msg,
+                },
+                status=400,
+            )
+        return redirect("orders_admin:dashboard")
 
     broadcast(
-        f"table.{session.table.pk}",
+        f"table.{session.table.qr_token}",
         "table.paid",
         {"table_id": session.table.pk, "session_id": session.pk},
     )

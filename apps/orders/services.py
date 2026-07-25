@@ -17,6 +17,7 @@ from django.db import transaction
 from django.db.models import F
 
 from apps.menu.models import MenuItem
+from apps.menu.services import invalidate_menu_cache
 
 from . import state
 from .models import Message, Order, OrderEvent, OrderItem, OrderStatus
@@ -109,6 +110,7 @@ def create_order(
             if mi.track_stock:
                 mi.stock_quantity = F("stock_quantity") - total_qty
                 mi.save(update_fields=["stock_quantity"])
+                invalidate_menu_cache()
 
         order = Order.objects.create(
             order_type=order_type,
@@ -163,7 +165,7 @@ def create_order(
     }
     broadcast("admin.dashboard", "order.status", payload)
     if order.table_id:
-        broadcast(f"table.{order.table_id}", "order.status", payload)
+        broadcast(f"table.{order.table.qr_token}", "order.status", payload)
 
     return order
 
@@ -194,6 +196,7 @@ def add_item_to_order(order: Order, menu_item_id: int, quantity: int = 1) -> Ord
         if mi.track_stock:
             mi.stock_quantity = F("stock_quantity") - quantity
             mi.save(update_fields=["stock_quantity"])
+            invalidate_menu_cache()
 
         order_item = order.items.filter(menu_item=mi).first()
         if order_item:
@@ -223,7 +226,7 @@ def add_item_to_order(order: Order, menu_item_id: int, quantity: int = 1) -> Ord
     broadcast(f"order.{order.pk}", "order.status", payload)
     broadcast("admin.dashboard", "order.status", payload)
     if order.table_id:
-        broadcast(f"table.{order.table_id}", "order.status", payload)
+        broadcast(f"table.{order.table.qr_token}", "order.status", payload)
 
     return order_item
 
@@ -242,6 +245,7 @@ def transition(order: Order, to_status: str, actor) -> Order:
     Raises:
         PermissionDenied: If the actor's role is not allowed to make
                           this transition.
+        ValidationError:  If moving to DISPATCH without an assigned agent.
 
     The state machine in state.py is the single source of truth for
     which transitions are legal. This function consults it, updates the
@@ -255,6 +259,9 @@ def transition(order: Order, to_status: str, actor) -> Order:
             f"from '{frm}' to '{to_status}'."
         )
 
+    if to_status == OrderStatus.DISPATCHED and order.agent_id is None:
+        raise ValidationError("Assign a delivery agent before dispatching.")
+
     with transaction.atomic():
         order.status = to_status
         order.save(update_fields=["status"])
@@ -264,6 +271,7 @@ def transition(order: Order, to_status: str, actor) -> Order:
                 if item.menu_item.track_stock:
                     item.menu_item.stock_quantity = F("stock_quantity") + item.quantity
                     item.menu_item.save(update_fields=["stock_quantity"])
+                    invalidate_menu_cache()
 
         OrderEvent.objects.create(
             order=order,
@@ -285,7 +293,7 @@ def transition(order: Order, to_status: str, actor) -> Order:
     if order.agent_id:
         broadcast(f"agent.{order.agent_id}", "order.status", payload)
     if order.table_id:
-        broadcast(f"table.{order.table_id}", "order.status", payload)
+        broadcast(f"table.{order.table.qr_token}", "order.status", payload)
 
     return order
 

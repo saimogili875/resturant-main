@@ -61,6 +61,17 @@ class MenuItem(TimeStampedModel):
     def __str__(self) -> str:
         return self.name
 
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        from .services import invalidate_menu_cache
+        invalidate_menu_cache()
+
+    def delete(self, *args, **kwargs):
+        super().delete(*args, **kwargs)
+        from .services import invalidate_menu_cache
+        invalidate_menu_cache()
+
+
     @property
     def effective_price(self) -> Decimal:
         """The single source of pricing truth.
@@ -83,3 +94,13 @@ class MenuItem(TimeStampedModel):
         if self.track_stock and self.stock_quantity <= 0:
             return False
         return True
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        from .services import invalidate_menu_cache
+        invalidate_menu_cache()
+
+    def delete(self, *args, **kwargs):
+        super().delete(*args, **kwargs)
+        from .services import invalidate_menu_cache
+        invalidate_menu_cache()

@@ -101,6 +101,7 @@ Context variables:
           hx-post="{% url 'tables_admin:clear_bill' order.session.pk %}"
           hx-target="#tab-card-{{ order.session.pk }}"
           hx-swap="outerHTML"
+          hx-confirm="Clear bill for Tab #{{ order.session.pk }} — {{ total|default:order.session.total|money }}? This cannot be undone."
           style="margin: 0;">
           {% csrf_token %}
           <button type="submit" class="btn btn-success btn-sm">

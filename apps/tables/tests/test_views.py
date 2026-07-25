@@ -168,7 +168,8 @@ def test_receipt_page_renders_itemized_total_and_excludes_cancelled(
     receipt_url = reverse("tables:receipt", args=[table.qr_token])
     resp = client.get(receipt_url)
     assert resp.status_code == 200
-    assert b"\xe2\x82\xb910.00" in resp.content
+    assert b"\xe2\x82\xb95.00" in resp.content  # Unit price column
+    assert b"\xe2\x82\xb910.00" in resp.content # Line total & tab total
     assert session.total == Decimal("10.00")
 
 
