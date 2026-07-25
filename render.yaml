@@ -24,6 +24,9 @@ services:
         value: ".onrender.com"
       - key: ADMIN_URL
         value: "backoffice/"
+      - key: RESEND_API_KEY
+        sync: false
+
 
   - type: redis
     name: restaurant-redis

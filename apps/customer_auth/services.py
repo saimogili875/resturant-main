@@ -78,23 +78,42 @@ def verify_otp_in_redis(phone: str, email: str, input_otp: str) -> bool:
 import logging
 import threading
 
+from django.conf import settings
+from django.core.mail import send_mail
+
 logger = logging.getLogger(__name__)
 
 
-def _send_email_async(subject: str, message: str, from_email: str, recipient_list: list[str]):
-    """Background worker function for asynchronous email dispatch."""
+def _send_email_async(subject: str, message: str, from_email: str, recipient_list: list[str], otp: str = ""):
+    """Background worker function for asynchronous email dispatch using Resend API or fallback."""
+    email = recipient_list[0] if recipient_list else ""
+    resend_key = getattr(settings, "RESEND_API_KEY", "")
+    backend = getattr(settings, "EMAIL_BACKEND", "")
+    is_test_or_console = backend.endswith("locmem.EmailBackend") or backend.endswith("console.EmailBackend")
     try:
-        send_mail(
-            subject=subject,
-            message=message,
-            from_email=from_email,
-            recipient_list=recipient_list,
-            fail_silently=False,
-        )
-        logger.info(f"Successfully sent OTP email to {recipient_list[0]}")
+        if resend_key and not is_test_or_console:
+            import resend
+            resend.api_key = resend_key
+            html_content = f"<p>Your OTP is <strong>{otp}</strong>. It expires in 5 minutes.</p>" if otp else f"<p>{message}</p>"
+            resend.Emails.send({
+                "from": "RDH Cafe Rudra <onboarding@resend.dev>",
+                "to": [email],
+                "subject": subject,
+                "html": html_content,
+            })
+            logger.info(f"Successfully sent OTP email via Resend to {email}")
+        else:
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=from_email,
+                recipient_list=recipient_list,
+                fail_silently=False,
+            )
+            logger.info(f"Successfully sent OTP email to {email}")
     except Exception as exc:
         logger.exception(
-            f"Failed to send OTP email to {recipient_list[0]} (host={settings.EMAIL_HOST}, user={settings.EMAIL_HOST_USER}): {exc}"
+            f"Failed to send OTP email to {email}: {exc}"
         )
 
 
@@ -111,24 +130,16 @@ def send_otp_email(email: str, otp: str) -> bool:
         f"Thank you,\n"
         f"RDH · Cafe Rudra"
     )
-    email_user = getattr(settings, "EMAIL_HOST_USER", "")
-    email_pass = getattr(settings, "EMAIL_HOST_PASSWORD", "")
-    if not email_user or not email_pass:
-        logger.error(
-            f"CANNOT SEND OTP EMAIL: EMAIL_HOST_USER or EMAIL_HOST_PASSWORD environment variable is blank in settings! "
-            f"(EMAIL_HOST_USER='{email_user}', EMAIL_HOST_PASSWORD={'[SET]' if email_pass else '[BLANK]'})"
-        )
-        return False
-
-    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None) or email_user
+    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None) or getattr(settings, "EMAIL_HOST_USER", None) or "caferudrahyd@gmail.com"
     logger.info(
-        f"Queueing OTP email to {email} in background thread (host={settings.EMAIL_HOST}:{settings.EMAIL_PORT}, user={email_user})"
+        f"Queueing OTP email to {email} in background thread"
     )
 
     thread = threading.Thread(
         target=_send_email_async,
-        args=(subject, message, from_email, [email]),
+        args=(subject, message, from_email, [email], otp),
         daemon=True,
     )
     thread.start()
     return True
+
