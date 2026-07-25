@@ -29,6 +29,10 @@ TRANSITIONS: dict[str, dict[str, tuple[str, ...]]] = {
         "COLLECT": ("CANCEL",),
     },
     "AGENT": {
+        "PLACED": ("ARRIVED",),
+        "APPROVED": ("ARRIVED",),
+        "KITCHEN": ("ARRIVED",),
+        "READY": ("ARRIVED",),
         "DISPATCH": ("ARRIVED",),
         "ARRIVED": ("COLLECT",),
         "COLLECT": ("PAID",),
