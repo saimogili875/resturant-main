@@ -96,7 +96,7 @@ def _send_email_async(subject: str, message: str, from_email: str, recipient_lis
             resend.api_key = resend_key
             html_content = f"<p>Your OTP is <strong>{otp}</strong>. It expires in 5 minutes.</p>" if otp else f"<p>{message}</p>"
             resend.Emails.send({
-                "from": "RDH Cafe Rudra <onboarding@resend.dev>",
+                "from": "RDH Cafe Rudra <otp@rdhcafe.in>",
                 "to": [email],
                 "subject": subject,
                 "html": html_content,
