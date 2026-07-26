@@ -253,11 +253,10 @@ def test_unauthenticated_delivery_flow_redirects_to_login(client):
     cat = Category.objects.create(name="Food", is_active=True)
     item = MenuItem.objects.create(category=cat, name="Burger", price=Decimal("250"), is_available=True)
 
-    # Unauthenticated GET menu redirects to login
+    # Unauthenticated GET menu renders public menu without login
     menu_url = reverse("orders_customer:menu")
     res = client.get(menu_url)
-    assert res.status_code == 302
-    assert res.url == reverse("customer_auth:login")
+    assert res.status_code == 200
 
     # Add item to cart without logging in
     session = client.session

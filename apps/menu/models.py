@@ -11,6 +11,8 @@ class Category(TimeStampedModel):
     """Menu category (e.g., Starters, Mains)."""
 
     name = models.CharField(max_length=60, unique=True)
+    tag = models.CharField(max_length=100, blank=True, help_text="Category tag/subtitle e.g. Aromatic & Flavorful")
+    image = models.ImageField(upload_to="categories/", blank=True)
     sort_order = models.PositiveSmallIntegerField(default=0, db_index=True)
     is_active = models.BooleanField(default=True)
 
@@ -19,6 +21,48 @@ class Category(TimeStampedModel):
 
     def __str__(self) -> str:
         return self.name
+
+    @property
+    def total_items_count(self) -> int:
+        items_list = getattr(self, "_prefetched_objects_cache", {}).get("items")
+        if items_list is not None:
+            return len(items_list)
+        return self.items.count()
+
+    @property
+    def available_items_count(self) -> int:
+        items_list = getattr(self, "_prefetched_objects_cache", {}).get("items")
+        if items_list is not None:
+            return sum(1 for item in items_list if item.is_available)
+        return self.items.filter(is_available=True).count()
+
+    @property
+    def unavailable_items_count(self) -> int:
+        items_list = getattr(self, "_prefetched_objects_cache", {}).get("items")
+        if items_list is not None:
+            return sum(1 for item in items_list if not item.is_available)
+        return self.items.filter(is_available=False).count()
+
+    @property
+    def header_image_url(self) -> str:
+        if self.image:
+            return self.image.url
+        items_list = getattr(self, "_prefetched_objects_cache", {}).get("items")
+        if items_list is not None:
+            for item in items_list:
+                if item.image:
+                    return item.image.url
+        else:
+            item_with_img = self.items.filter(image__isnull=False).exclude(image="").first()
+            if item_with_img and item_with_img.image:
+                return item_with_img.image.url
+        
+        name_lower = self.name.lower()
+        if "biryani" in name_lower or "biriyani" in name_lower:
+            return "/media/items/chicken_biryani.png"
+        elif "ice" in name_lower or "sweet" in name_lower or "dessert" in name_lower:
+            return "/media/items/ice_cream.png"
+        return "/static/images/exterior.jpeg"
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)

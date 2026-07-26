@@ -46,6 +46,26 @@ def test_delivery_menu_view(customer_client, burger):
 
 
 @pytest.mark.django_db
+def test_delivery_menu_view_logged_out(client, burger):
+    """GET /order/menu/ renders the public delivery menu for unauthenticated guests (no login required)."""
+    url = reverse("orders_customer:menu")
+    response = client.get(url)
+    assert response.status_code == 200
+    assert burger.name in response.content.decode("utf-8")
+
+
+@pytest.mark.django_db
+def test_cart_add_view_logged_out(client, burger):
+    """POST /order/cart/add adds item to session cart for unauthenticated guests."""
+    url = reverse("orders_customer:cart_add")
+    response = client.post(url, {"menu_item_id": burger.pk, "quantity": 1})
+    assert response.status_code == 200
+    assert "1 item" in response.content.decode("utf-8")
+    assert client.session["delv_cart"][str(burger.pk)] == 1
+
+
+
+@pytest.mark.django_db
 def test_cart_add_view(customer_client, burger):
     """POST /order/cart/add adds item to session cart and renders fragment."""
     url = reverse("orders_customer:cart_add")
@@ -80,7 +100,7 @@ def test_cart_update_remove_item_to_zero(customer_client, burger):
     response = customer_client.post(url, {"menu_item_id": burger.pk, "action": "remove"})
     assert response.status_code == 200
     assert str(burger.pk) not in customer_client.session.get("delv_cart", {})
-    assert "Select items from the delivery menu" in response.content.decode("utf-8")
+    assert response.content.decode("utf-8").strip() == ""
 
 
 @pytest.mark.django_db
@@ -230,12 +250,12 @@ def test_checkout_post_invalid_lat_lng_ignored_and_rejected_if_no_address(custom
 
 
 @pytest.mark.django_db
-def test_order_history_gated_redirects_unauthenticated(client):
-    """Logged-out users hitting /order/my-orders/ directly should redirect to login."""
+def test_order_history_logged_out_renders_prompt(client):
+    """Logged-out users hitting /order/my-orders/ directly receive status 200 with sign-in prompt."""
     url = reverse("orders_customer:my_orders")
     response = client.get(url)
-    assert response.status_code == 302
-    assert reverse("customer_auth:login") in response.url
+    assert response.status_code == 200
+    assert "Sign in to view your order history" in response.content.decode("utf-8")
 
 
 @pytest.mark.django_db

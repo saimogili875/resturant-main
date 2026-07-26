@@ -133,8 +133,10 @@ def _send_email_async(subject: str, message: str, from_email: str, recipient_lis
     resend_key = getattr(settings, "RESEND_API_KEY", "")
     backend = getattr(settings, "EMAIL_BACKEND", "")
     is_test_or_console = backend.endswith("locmem.EmailBackend") or backend.endswith("console.EmailBackend")
-    try:
-        if resend_key and not is_test_or_console:
+
+    sent_via_resend = False
+    if resend_key and not is_test_or_console:
+        try:
             import resend
             resend.api_key = resend_key
             html_content = f"<p>Your OTP is <strong>{otp}</strong>. It expires in 5 minutes.</p>" if otp else f"<p>{message}</p>"
@@ -145,7 +147,14 @@ def _send_email_async(subject: str, message: str, from_email: str, recipient_lis
                 "html": html_content,
             })
             logger.info(f"Successfully sent OTP email via Resend to {email}")
-        else:
+            sent_via_resend = True
+        except (ImportError, ModuleNotFoundError):
+            logger.info("resend package not installed in environment; falling back to SMTP send_mail")
+        except Exception as exc:
+            logger.warning(f"Resend dispatch failed ({exc}); falling back to SMTP send_mail")
+
+    if not sent_via_resend:
+        try:
             send_mail(
                 subject=subject,
                 message=message,
@@ -154,10 +163,9 @@ def _send_email_async(subject: str, message: str, from_email: str, recipient_lis
                 fail_silently=False,
             )
             logger.info(f"Successfully sent OTP email to {email}")
-    except Exception as exc:
-        logger.exception(
-            f"Failed to send OTP email to {email}: {exc}"
-        )
+        except Exception as exc:
+            logger.exception(f"Failed to send OTP email to {email}: {exc}")
+
 
 
 def send_otp_email(email: str, otp: str) -> bool:

@@ -73,12 +73,11 @@ def test_guest_routes_return_200(client, table, menu_item):
         assert response.status_code == 200, f"{url} -> {response.status_code}"
 
 
-def test_customer_menu_requires_customer_auth(client, db):
-    """The delivery menu requires customer auth (redirects unauthenticated to login)."""
+def test_customer_menu_accessible_without_auth(client, db):
+    """The public delivery menu is browsable without customer auth (returns 200)."""
     menu_url = reverse("orders_customer:menu")
     res = client.get(menu_url)
-    assert res.status_code == 302
-    assert res.url == reverse("customer_auth:login")
+    assert res.status_code == 200
 
 
 

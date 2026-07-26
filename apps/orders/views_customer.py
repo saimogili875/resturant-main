@@ -60,9 +60,14 @@ def _get_delivery_cart(session_dict: dict) -> tuple[list[dict], Decimal, int]:
 
 
 @require_GET
-@customer_login_required
 def delivery_menu(request):
     """Render the public delivery menu with server-side cart."""
+    from apps.customer_auth.views import get_logged_in_customer
+
+    customer = getattr(request, "delivery_customer", None) or get_logged_in_customer(request)
+    if customer:
+        request.delivery_customer = customer
+
     all_categories = get_cached_menu()
     search = request.GET.get("search", "").strip()
     category = request.GET.get("category", "all")
@@ -91,7 +96,7 @@ def delivery_menu(request):
         "cart_items": cart_items,
         "cart_total": cart_total,
         "cart_count": cart_count,
-        "delivery_customer": getattr(request, "delivery_customer", None),
+        "delivery_customer": customer,
     }
     if request.headers.get("HX-Request"):
         return render(request, "orders/customer/partials/menu_results.html", context)
@@ -99,7 +104,6 @@ def delivery_menu(request):
 
 
 @require_POST
-@customer_login_required
 def cart_add(request):
     """HTMX endpoint to add a menu item to the delivery session cart."""
     menu_item_id = request.POST.get("menu_item_id")
@@ -142,7 +146,6 @@ def cart_add(request):
 
 
 @require_POST
-@customer_login_required
 def cart_update(request):
     """HTMX / Form endpoint to update or remove a menu item quantity in the delivery session cart."""
     menu_item_id = request.POST.get("menu_item_id")
@@ -504,15 +507,39 @@ def post_order_message(request, pk):
 
 
 @require_GET
-@customer_login_required
+def delivery_cart_view(request):
+    """Customer dedicated cart page showing session cart items, totals, and checkout button."""
+    from apps.customer_auth.views import get_logged_in_customer
+
+    customer = getattr(request, "delivery_customer", None) or get_logged_in_customer(request)
+    if customer:
+        request.delivery_customer = customer
+
+    cart_items, cart_total, cart_count = _get_delivery_cart(request.session)
+
+    context = {
+        "cart_items": cart_items,
+        "cart_total": cart_total,
+        "cart_count": cart_count,
+        "delivery_customer": customer,
+    }
+    return render(request, "orders/customer/cart.html", context)
+
+
+@require_GET
 def order_history(request):
-    """Customer order history page listing all past and active delivery orders."""
-    customer = request.delivery_customer
+    """Customer order history page listing past orders and live active order banner if present."""
+    from apps.customer_auth.views import get_logged_in_customer
+
+    customer = getattr(request, "delivery_customer", None) or get_logged_in_customer(request)
+    if customer:
+        request.delivery_customer = customer
+
     status_filter = request.GET.get("status", "all").lower()
 
     # Query customer's orders by contact_phone or session order IDs
     delv_order_ids = request.session.get("delv_orders", [])
-    phone = customer.phone.strip() if customer.phone else ""
+    phone = customer.phone.strip() if (customer and customer.phone) else ""
     cleaned_phone = re.sub(r"[\s\-\(\)]", "", phone) if phone else ""
 
     query = Q()
@@ -523,21 +550,89 @@ def order_history(request):
     if delv_order_ids:
         query |= Q(pk__in=delv_order_ids)
 
-    orders_qs = Order.objects.filter(query).prefetch_related("items").order_by("-created_at").distinct()
+    orders_qs = Order.objects.none()
+    active_order = None
+    if query:
+        base_qs = Order.objects.filter(query).prefetch_related("items").order_by("-created_at").distinct()
+        non_terminal_exclude = [OrderStatus.PAID, OrderStatus.CANCELLED]
+        completed_statuses = [OrderStatus.PAID, OrderStatus.COLLECTED, OrderStatus.CANCELLED]
+        if status_filter == "completed":
+            orders_qs = base_qs.filter(status__in=completed_statuses)
+            active_order = None
+        elif status_filter in ("not_completed", "active"):
+            orders_qs = base_qs.exclude(status__in=completed_statuses)
+            active_order = base_qs.exclude(status__in=non_terminal_exclude).first()
+        else:
+            orders_qs = base_qs
+            active_order = base_qs.exclude(status__in=non_terminal_exclude).first()
 
-    completed_statuses = [OrderStatus.PAID, OrderStatus.COLLECTED, OrderStatus.CANCELLED]
-
-    if status_filter == "completed":
-        orders_qs = orders_qs.filter(status__in=completed_statuses)
-    elif status_filter in ("not_completed", "active"):
-        orders_qs = orders_qs.exclude(status__in=completed_statuses)
+    cart_items, cart_total, cart_count = _get_delivery_cart(request.session)
 
     context = {
+        "active_order": active_order,
         "orders": list(orders_qs),
         "status_filter": status_filter,
         "delivery_customer": customer,
-        "cart_count": sum(request.session.get("delv_cart", {}).values()),
-        "completed_statuses": [s.value for s in completed_statuses],
+        "cart_count": cart_count,
+        "completed_statuses": [OrderStatus.PAID.value, OrderStatus.COLLECTED.value, OrderStatus.CANCELLED.value],
     }
     return render(request, "orders/customer/order_history.html", context)
+
+
+@require_GET
+def track_current(request):
+    """Redirect to the customer's most recent active (non-terminal) order or show merged orders view."""
+    from apps.customer_auth.views import get_logged_in_customer
+
+    customer = getattr(request, "delivery_customer", None) or get_logged_in_customer(request)
+    if customer:
+        request.delivery_customer = customer
+
+    delv_order_ids = request.session.get("delv_orders", [])
+
+    query = Q()
+    if delv_order_ids:
+        query |= Q(pk__in=delv_order_ids)
+    if customer:
+        query |= Q(delivery_customer=customer)
+        if customer.phone:
+            cleaned_phone = re.sub(r"[\s\-\(\)]", "", customer.phone.strip())
+            if cleaned_phone:
+                if len(cleaned_phone) >= 10:
+                    query |= Q(contact_phone__iendswith=cleaned_phone[-10:])
+                else:
+                    query |= Q(contact_phone=customer.phone.strip())
+
+    active_order = None
+    if query:
+        non_terminal_exclude = [OrderStatus.PAID, OrderStatus.CANCELLED]
+        active_order = (
+            Order.objects.filter(query)
+            .exclude(status__in=non_terminal_exclude)
+            .order_by("-created_at")
+            .first()
+        )
+
+    if active_order:
+        return redirect("orders_customer:track", pk=active_order.pk)
+
+    return order_history(request)
+
+
+@require_GET
+def customer_settings(request):
+    """Customer settings page displaying account info and auth actions."""
+    customer = getattr(request, "delivery_customer", None)
+    if not customer:
+        from apps.customer_auth.views import get_logged_in_customer
+        customer = get_logged_in_customer(request)
+
+    if customer:
+        request.delivery_customer = customer
+
+    context = {
+        "delivery_customer": customer,
+    }
+    return render(request, "orders/customer/settings.html", context)
+
 

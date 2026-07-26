@@ -24,7 +24,7 @@ class CategoryForm(forms.ModelForm):
 
     class Meta:
         model = Category
-        fields = ("name", "sort_order", "is_active")
+        fields = ("name", "tag", "image", "sort_order", "is_active")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

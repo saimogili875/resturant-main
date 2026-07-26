@@ -110,7 +110,135 @@
   --gray-200: var(--rdh-outline-variant);
   --primary-500: var(--rdh-primary);
   --bg-surface-secondary: var(--rdh-surface-container-low);
+}
 
+/* ==========================================================================
+   LIGHT MODE TOKENS
+   ========================================================================== */
+[data-theme="light"] {
+  --rdh-primary: #b38600;
+  --rdh-primary-fixed: #946e00;
+  --rdh-primary-container: #d4af37;
+  --rdh-tertiary: #a07810;
+  --rdh-bg: #f8f6f0;
+  --rdh-bg-black: #ffffff;
+  --rdh-surface: #ffffff;
+  --rdh-surface-container: #ffffff;
+  --rdh-surface-container-low: #f3efe6;
+  --rdh-surface-container-high: #e9e3d5;
+  --rdh-surface-container-lowest: #ffffff;
+  --rdh-on-surface: #1c1b18;
+  --rdh-on-surface-variant: #5c5545;
+  --rdh-on-primary: #ffffff;
+  --rdh-outline: #c4b9a3;
+  --rdh-outline-variant: #e2dac9;
+  --rdh-error: #d93829;
+
+  --color-brand-primary: #b38600;
+  --color-brand-primary-hover: #946e00;
+  --color-brand-primary-light: rgba(179, 134, 0, 0.12);
+  --color-brand-accent: #e9e3d5;
+  --color-brand-accent-hover: #dcd4c3;
+
+  --color-success: #059669;
+  --color-success-light: rgba(5, 150, 105, 0.12);
+  --color-success-dark: #047857;
+
+  --color-warning: #d97706;
+  --color-warning-light: rgba(217, 119, 6, 0.12);
+  --color-warning-dark: #b45309;
+
+  --color-danger: #d93829;
+  --color-danger-light: rgba(217, 56, 41, 0.12);
+  --color-danger-dark: #b91c1c;
+
+  --bg-body: #f8f6f0;
+  --bg-surface: #ffffff;
+  --bg-surface-elevated: #f3efe6;
+  --bg-input: #ffffff;
+
+  --border-subtle: #e2dac9;
+  --border-strong: #c4b9a3;
+
+  --text-primary: #1c1b18;
+  --text-secondary: #5c5545;
+  --text-tertiary: #857a66;
+  --text-muted: #6b6352;
+  --text-inverse: #ffffff;
+
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.09);
+  --shadow-lg: 0 10px 28px rgba(0, 0, 0, 0.12);
+  --glow-gold: 0 4px 20px rgba(179, 134, 0, 0.2);
+
+  --gray-50: #f8f6f0;
+  --gray-100: #ffffff;
+  --gray-200: #e2dac9;
+  --primary-500: #b38600;
+  --bg-surface-secondary: #f3efe6;
+}
+
+/* ====================================================================
+   ALWAYS-DARK: header & bottom nav are pinned to dark palette values
+   regardless of [data-theme]. Only {% block content %} toggles.
+   Values below are the exact dark-mode tokens from :root.
+   ==================================================================== */
+.app-header {
+  background-color: rgba(19, 19, 19, 0.72) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-bottom: 1px solid #4d4635 !important;      /* --rdh-outline-variant dark */
+  color: #e5e2e1 !important;                         /* --rdh-on-surface dark */
+}
+.app-header__title {
+  color: #f2ca50 !important;                         /* --rdh-primary dark */
+}
+.app-header__subtitle {
+  color: #d0c5af !important;                         /* --rdh-on-surface-variant dark */
+}
+
+/* Header action buttons — pinned dark */
+.app-header .btn {
+  background-color: #2a2a2a !important;              /* --rdh-surface-container-high dark */
+  color: #e5e2e1 !important;                         /* --rdh-on-surface dark */
+  border-color: #99907c !important;                  /* --rdh-outline dark */
+}
+.app-header .btn-outline {
+  background-color: transparent !important;
+  border-color: #f2ca50 !important;                  /* --rdh-primary dark */
+  color: #f2ca50 !important;
+}
+.app-header .table-badge {
+  border-color: #99907c !important;
+  background: rgba(242, 202, 80, 0.1) !important;
+  color: #f2ca50 !important;
+}
+.app-header .text-muted {
+  color: #d0c5af !important;
+}
+
+/* Bottom nav — pinned dark */
+.mobile-bottom-nav {
+  background-color: rgba(19, 19, 19, 0.95) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-top: 1px solid #4d4635 !important;          /* --rdh-outline-variant dark */
+}
+.mobile-bottom-nav__item {
+  color: #d0c5af !important;                         /* --rdh-on-surface-variant dark */
+}
+.mobile-bottom-nav__item:hover {
+  color: #ffe088 !important;                         /* --rdh-primary-fixed dark */
+}
+.mobile-bottom-nav__item--active {
+  color: #f2ca50 !important;                         /* --rdh-primary dark */
+}
+.mobile-bottom-nav__badge {
+  background-color: #f2ca50 !important;
+  color: #000 !important;
+}
+
+:root {
   /* --- Typography --- */
   --font-display: "Playfair Display", Georgia, "Times New Roman", serif;
   --font-body: "Manrope", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -581,16 +709,16 @@ img {
    ========================================================================== */
 .fixed-bottom-bar {
   position: fixed;
-  bottom: 0;
+  bottom: calc(56px + env(safe-area-inset-bottom, 0px));
   left: 0;
   right: 0;
-  background-color: rgba(19, 19, 19, 0.9);
+  background-color: rgba(19, 19, 19, 0.95);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-top: 1px solid var(--border-subtle);
   padding: var(--space-3) var(--space-4);
   box-shadow: var(--shadow-float);
-  z-index: 100;
+  z-index: 105;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -600,6 +728,99 @@ img {
   justify-content: space-between;
   align-items: center;
   padding: 0;
+}
+
+/* Mobile Bottom Navigation Bar */
+.customer-main-container {
+  padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+}
+
+.mobile-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 110;
+  background-color: rgba(19, 19, 19, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border-subtle);
+  padding-top: var(--space-2);
+  padding-bottom: calc(var(--space-2) + env(safe-area-inset-bottom, 0px));
+  box-shadow: var(--shadow-float);
+}
+
+.mobile-bottom-nav__items {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0 var(--space-2);
+}
+
+.mobile-bottom-nav__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--space-1) var(--space-2);
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  transition: color var(--transition-fast);
+  flex: 1;
+}
+
+.mobile-bottom-nav__icon-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-bottom-nav__badge {
+  position: absolute;
+  top: -5px;
+  right: -8px;
+  background-color: var(--color-brand-primary);
+  color: #000;
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 9999px;
+  min-width: 16px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+}
+
+.mobile-bottom-nav__item:hover {
+  color: var(--color-brand-primary-hover);
+}
+
+.mobile-bottom-nav__item--active {
+  color: var(--color-brand-primary);
+  font-weight: var(--fw-bold);
+}
+
+.mobile-bottom-nav__icon {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-bottom-nav__icon svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .table-wrapper {
